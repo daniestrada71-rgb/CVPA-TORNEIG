@@ -1,16 +1,16 @@
 import sqlite3
 import os
+from collections import defaultdict
 
-# Detectar si som a Render (entorn de producció)
-IS_RENDER = os.environ.get("RENDER") == "true"
-
-if IS_RENDER:
-    DB_FILE = "/tmp/cvpa.db"
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
 
 print("📌 Base de dades utilitzada:", DB_FILE)
+
+def ensure_db_exists():
+    if not os.path.exists(DB_FILE):
+        print("📌 No existeix la base de dades. Creant cvpa.db...")
+        create_db()
 
 # ----------------------------------------------------------------------
 # 🔹 CREACIÓ BASE DE DADES
@@ -31,10 +31,24 @@ def create_db():
         ordre INTEGER
     )
     """)
+
     c.execute("""
     CREATE TABLE IF NOT EXISTS pistes_grup (
         grup INTEGER PRIMARY KEY,
         pista INTEGER
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS partits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        grup INTEGER,
+        equip1 TEXT,
+        equip2 TEXT,
+        arbitre TEXT,
+        punts1 INTEGER DEFAULT 0,
+        punts2 INTEGER DEFAULT 0,
+        jugat INTEGER DEFAULT 0
     )
     """)
 
@@ -417,5 +431,6 @@ def obtenir_fase_final_equips(fase):
         conn.close()
 
     return equips
+
 
 
