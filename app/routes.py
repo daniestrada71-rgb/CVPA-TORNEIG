@@ -501,7 +501,11 @@ def confeccio_grups():
 
 @admin_bd_bp.route('/admin/fasegrups', methods=['GET', 'POST'])
 def fase_grups():
-    from db import obtenir_grups_guardats, generar_partits, obtenir_partits, actualitzar_resultat, calcular_classificacio
+    from db import (
+        obtenir_grups_guardats, generar_partits,
+        obtenir_partits, actualitzar_resultat,
+        calcular_classificacio
+    )
 
     grups_guardats = obtenir_grups_guardats()
     grups_disponibles = sorted(grups_guardats.keys()) if grups_guardats else [1]
@@ -510,7 +514,9 @@ def fase_grups():
     msg = None
     error = None
 
-    # 🔥 GENERAR PARTITS TOTS ELS GRUPS
+    # -------------------------------------------------------------------
+    # 🔥 GENERAR PARTITS DE TOTS ELS GRUPS
+    # -------------------------------------------------------------------
     if 'generar' in request.form:
         total = 0
         detalls = []
@@ -522,16 +528,41 @@ def fase_grups():
 
         msg = f"✅ S'han generat {total} partits en total — {', '.join(detalls)}"
 
-    # --- DESPRÉS DE GENERAR (o GET), CARREGUEM EL GRUP ACTUAL ---
+
+    # -------------------------------------------------------------------
+    # 💾 GUARDAR RESULTATS DEL GRUP ACTUAL
+    # -------------------------------------------------------------------
+    if 'guardar' in request.form:
+        try:
+            for p in obtenir_partits(grup_id):
+                pid = p[0]
+
+                p1 = request.form.get(f"p1_{pid}", "").strip()
+                p2 = request.form.get(f"p2_{pid}", "").strip()
+
+                if p1.isdigit() and p2.isdigit():
+                    actualitzar_resultat(pid, int(p1), int(p2))
+
+            msg = "💾 Resultats guardats correctament!"
+        except Exception as e:
+            error = f"❌ Error guardant resultats: {e}"
+
+
+    # -------------------------------------------------------------------
+    # 🔄 DESPRÉS DE GENERAR/ GUARDAR / GET → CARREGAR DADES DEL GRUP
+    # -------------------------------------------------------------------
     partits = obtenir_partits(grup_id)
     classificacio = calcular_classificacio(grup_id)
 
-    # --- Carregar pista assignada ---
+    # -------------------------------------------------------------------
+    # 🏐 Carregar pista assignada
+    # -------------------------------------------------------------------
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     row = c.execute("SELECT pista FROM pistes_grup WHERE grup=?", (grup_id,)).fetchone()
     conn.close()
-    pista_assignada = row[0] if row and row[0] is not None else None
+
+    pista_assignada = row[0] if row else None
 
     return render_template(
         'admin_fasegrups.html',
@@ -543,7 +574,6 @@ def fase_grups():
         error=error,
         pista=pista_assignada
     )
-
 
 # ----------------------------------------------------------------------
 # 🔹 PDF FASE DE GRUPS
@@ -719,3 +749,4 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
+
