@@ -1,26 +1,68 @@
-from flask import Flask
-from .routes import main_bp, admin_bd_bp
-from db import create_db
-from .routes_fasefinal import admin_fasefinal_bp
-from .routes_jugador import jugador_bp
-from dotenv import load_dotenv
 import os
+from flask import Flask
+from flask import g
+
+# ----------------------------------------
+# 🔧 DETECTAR SI SOM A PRODUCCIÓ (RENDER)
+# ----------------------------------------
+IS_RENDER = os.environ.get("RENDER") == "true"
+
+# ----------------------------------------
+# 🔐 CONFIGURACIÓ SECRETA
+# ----------------------------------------
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "1234")
+
+# ----------------------------------------
+# 🗄 BASE DE DADES
+# ----------------------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL")  # PostgreSQL Neon
+USE_POSTGRES = DATABASE_URL is not None  # True si existeix
+
 
 def create_app():
-    load_dotenv()  # Carrega .env
+    """
+    Crea l'aplicació Flask i carrega:
+    - Config global
+    - Rutes
+    - DB inicial (Postgres o SQLite)
+    """
 
     app = Flask(__name__)
-    app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")   # Secret per sessions
-    create_db()
 
-    app.config["ADMIN_PASSWORD"] = os.getenv("ADMIN_PASSWORD", "1234")
+    # -----------------------------
+    # 🔐 CONFIG DE L’APP
+    # -----------------------------
+    app.config["SECRET_KEY"] = SECRET_KEY
+    app.config["ADMIN_PASSWORD"] = ADMIN_PASSWORD
+    app.config["DATABASE_URL"] = DATABASE_URL
+    app.config["USE_POSTGRES"] = USE_POSTGRES
+
+    # -----------------------------
+    # 🗄 INICIALITZAR DB SI CAL
+    # -----------------------------
+    from db import ensure_db_exists
+    ensure_db_exists()
+
+    # -----------------------------
+    # 📌 IMPORTAR I REGISTRAR BLUEPRINTS
+    # -----------------------------
+    from .routes_main import main_bp
+    from .routes_admin import admin_bp
+    from .routes_fasegrups import admin_bd_bp
+    from .routes_fasefinal import admin_fasefinal_bp
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp)
     app.register_blueprint(admin_bd_bp)
     app.register_blueprint(admin_fasefinal_bp)
-    app.register_blueprint(jugador_bp)
-    
+
+    # -----------------------------
+    # 🌍 TEST ROUTE (opcional)
+    # -----------------------------
+    @app.route("/ping")
+    def ping():
+        return "pong"
+
     return app
-
-
 
