@@ -59,6 +59,22 @@ def fetchall(query, params=()):
         conn.close()
         return rows
 
+def ensure_db_exists():
+    """
+    Si usem PostgreSQL (Neon), no cal fer res perquè la DB ja existeix.
+    Si usem SQLite en local, crea el fitxer cvpa.db si no existeix.
+    """
+    import os
+
+    # Si estem a Render i tenim PostgreSQL, no fem res.
+    if os.environ.get("DATABASE_URL"):
+        print("📌 PostgreSQL detectat — no cal crear fitxer SQLite")
+        return
+
+    # Mode local — SQLite
+    if not os.path.exists(DB_FILE):
+        print("📌 SQLite: creant base de dades local...")
+        create_db()
 
 def execute(query, params=()):
     if USING_POSTGRES:
@@ -574,4 +590,5 @@ def obtenir_fase_final_equips(fase):
 
     conn.close()
     return equips
+
 
