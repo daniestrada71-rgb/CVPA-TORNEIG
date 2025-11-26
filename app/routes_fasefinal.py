@@ -552,7 +552,7 @@ def api_load_bracket(fase):
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 
-@admin_fasefinal_bp.route('/admin/fasefinal/reset/<fase>', methods=['POST'])
+@admin_fasefinal_bp.route('/admin/fasefinal/api/reset/<fase>', methods=['POST'])
 def reset_bracket(fase):
     """Esborra el fitxer JSON guardat per la fase indicada."""
     fase = fase.lower()
@@ -564,6 +564,7 @@ def reset_bracket(fase):
         return jsonify({"ok": True, "msg": "Quadrant reiniciat correctament!"})
 
     return jsonify({"ok": False, "msg": "No hi havia cap quadre guardat."})
+
 
 
 
