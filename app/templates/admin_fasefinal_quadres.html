@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Quadres Finals</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  padding: 25px;
+}
+h1 {
+  color: #800000;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+/* Caixa centrada */
+.box {
+  width: 500px;
+  margin: 0 auto;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+select {
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  width: 80%;
+  margin-top: 10px;
+}
+
+.btn {
+  background: #800000;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 20px;
+}
+.btn:hover {
+  background: #a00000;
+}
+
+.back {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #444;
+}
+.back:hover {
+  background: #666;
+}
+
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+th {
+  background: #800000;
+  color: white;
+}
+</style>
+</head>
+<body>
+
+<!-- Botó Tornar -->
+<a href="{{ url_for('jugador.fase_final_index') }}" class="btn back">⬅ Tornar</a>
+
+<h1>FASE FINAL</h1>
+
+<div class="box">
+
+<form method="POST">
+  <label for="fase"><strong>Selecciona fase:</strong></label><br>
+  <select name="fase" id="fase" onchange="this.form.submit()">
+    {% for fase, num in fases.items() %}
+      <option value="{{ fase }}" {% if fase == fase_sel %}selected{% endif %}>
+        {{ fase }} ({{ num }} equips)
+      </option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if equips %}
+<table>
+  <thead>
+    <tr>
+      <th>Posició</th>
+      <th>Equip</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for equip, pos in equips %}
+    <tr>
+      <td>{{ pos }}</td>
+      <td>{{ equip }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- 🔥 Obrir bracket versió jugador -->
+<a href="{{ url_for('admin_fasefinal.visualitzar_quadre_fase', fase=fase_sel) }}"
+   class="btn">🧩 Generar / Editar Quadre {{ fase_sel }}</a>
+
+
+{% else %}
+<p style="margin-top:20px;color:#800000;font-weight:bold;">
+  No hi ha equips assignats per aquesta fase.
+</p>
+{% endif %}
+
+</div>
+
+</body>
+</html>

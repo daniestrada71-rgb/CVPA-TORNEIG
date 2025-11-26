@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Base de dades · Equips</title>
+<style>
+  body { font-family: Arial, background:#f0f0f0; display:flex; justify-content:center; padding:30px 10px; }
+  .wrap { width:1100px; }
+  h2 { color:#800000; }
+  .form-box {
+    margin-bottom:14px;
+    padding:12px;
+    border-radius:8px;
+    border:2px solid #ccc;
+    background:white;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .form-box.editing { background:#fff6b3; border-color:orange; }
+  input[type=text], input[type=number] { padding:6px; border-radius:6px; border:1px solid #bbb; }
+  .btn { padding:7px 12px; border-radius:6px; border:none; color:white; cursor:pointer; font-weight:bold; }
+  .btn-add { background:green; }
+  .btn-mod { background:orange; }
+  .btn-delall { background:red; }
+  .controls { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .search { margin-left:auto; }
+  table { width:100%; border-collapse:collapse; background:white; }
+  th, td { padding:8px 10px; border:1px solid #e0e0e0; text-align:center; }
+  th { background:#800000; color:white; cursor:pointer; user-select:none; }
+  tr.row-hover:hover { background:#b9b9b9; cursor:pointer; }
+  .tag-alt { background:#f8d7da; }   /* valor alt (>=8) */
+  .tag-mitja { background:#fff3cd; } /* valor mig (4-7) */
+  .tag-baix { background:#d4edda; }  /* valor baix (<4) */
+  .actions form { display:inline-block; margin:0 4px; }
+  .small-btn { padding:5px 8px; border-radius:6px; border:none; color:white; }
+  .small-btn.del { background:#555; }
+  .small-btn.edit { background:#ff8c00; }
+  .note { color:#666; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/admin" style="display:inline-block; margin-bottom:10px; background:#800000; color:white; padding:8px 12px; border-radius:8px; text-decoration:none;">⬅ Tornar</a>
+  <h2>BASE DE DADES · EQUIPS</h2>
+
+  <div class="controls">
+    <!-- Formulari principal -->
+    <form id="mainForm" method="post" style="flex:1;">
+      <div id="formBox" class="form-box {% if equip_editant %}editing{% endif %}">
+        <input type="hidden" name="id" value="{{ equip_editant[0] if equip_editant else '' }}">
+        <input type="text" name="nom_participants" placeholder="Jugadors" value="{{ equip_editant[1] if equip_editant else '' }}" required>
+        <input type="text" name="nom_equip" placeholder="Equip" value="{{ equip_editant[2] if equip_editant else '' }}" required>
+        <input type="number" name="valor" placeholder="Valor (0-10)" min="0" max="10" value="{{ equip_editant[3] if equip_editant else '' }}" required>
+        <input type="text" name="email" placeholder="Email" value="{{ equip_editant[4] if equip_editant else '' }}">
+        <input type="text" name="telefon" placeholder="Telèfon" value="{{ equip_editant[5] if equip_editant else '' }}">
+        {% if equip_editant %}
+          <button name="modificar" class="btn btn-mod">💾 Guardar canvis</button>
+        {% else %}
+          <button name="afegir" class="btn btn-add">➕ Afegir equip</button>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Botó eliminar tots -->
+    <form method="post" style="margin-left:8px;">
+      <button name="eliminar_tot" class="btn btn-delall">🚨 Eliminar tots</button>
+    </form>
+
+    <!-- Search -->
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="🔍 Cerca (jugadors, equip, email, tel)" style="padding:6px; width:360px; border-radius:6px; border:1px solid #bbb;">
+    </div>
+  </div>
+
+  <table id="dataTable" aria-describedby="taula equips">
+    <thead>
+      <tr>
+        <th data-col="index">#</th>
+        <th data-col="jugadors">JUGADORS</th>
+        <th data-col="equip">EQUIP</th>
+        <th data-col="valor">VALOR</th>
+        <th data-col="email">EMAIL</th>
+        <th data-col="telefon">TELÈFON</th>
+        <th data-col="accions">ACCIONS</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in equips %}
+      <tr class="row-hover {% if e[3] >= 8 %}tag-alt{% elif e[3] >= 4 %}tag-mitja{% else %}tag-baix{% endif %}" data-id="{{ e[0] }}">
+        <td class="col-index">{{ loop.index }}</td>
+        <td class="col-jugadors">{{ e[1] }}</td>
+        <td class="col-equip">{{ e[2] }}</td>
+        <td class="col-valor">{{ e[3] }}</td>
+        <td class="col-email">{{ e[4] }}</td>
+        <td class="col-telefon">{{ e[5] }}</td>
+        <td class="actions">
+          <!-- Eliminar directe -->
+          <form method="post" style="display:inline;">
+            <input type="hidden" name="id" value="{{ e[0] }}">
+            <button name="eliminar" class="small-btn del" title="Eliminar">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="note">Fes clic a qualsevol fila per carregar-la al formulari d'edició superior.</p>
+</div>
+
+<script>
+/* Filtrat en temps real */
+const searchInput = document.getElementById('searchInput');
+const table = document.getElementById('dataTable');
+const tbody = table.querySelector('tbody');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((r) => {
+    const text = (r.querySelector('.col-jugadors').textContent + ' ' + r.querySelector('.col-equip').textContent + ' ' + r.querySelector('.col-email').textContent + ' ' + r.querySelector('.col-telefon').textContent).toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+  // reindex visible rows
+  let idx = 1;
+  tbody.querySelectorAll('tr').forEach((r) => {
+    if (r.style.display === 'none') return;
+    r.querySelector('.col-index').textContent = idx++;
+  });
+});
+
+/* Ordenació client-side per columna */
+const headers = table.querySelectorAll('th[data-col]');
+headers.forEach((th, colIndex) => {
+  if (th.dataset.col === 'accions') return; // sense ordenar per accions
+  let asc = true;
+  th.addEventListener('click', () => {
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none');
+    rows.sort((a,b) => {
+      let aText = a.children[colIndex].textContent.trim().toLowerCase();
+      let bText = b.children[colIndex].textContent.trim().toLowerCase();
+      // si és numeric column valor
+      if (th.dataset.col === 'valor') {
+        return asc ? (Number(aText) - Number(bText)) : (Number(bText) - Number(aText));
+      }
+      return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+    // append in sorted order (only visible rows)
+    rows.forEach(r => tbody.appendChild(r));
+    asc = !asc;
+    // reindex all visible rows
+    let idx=1; tbody.querySelectorAll('tr').forEach(r => { if (r.style.display!=='none') r.querySelector('.col-index').textContent = idx++; });
+  });
+});
+
+/* Clic a fila → enviar POST per carregar dades */
+tbody.addEventListener('click', function(ev) {
+  // si ha clicat un botó dins la fila, no fem el "carregar" per evitar duplicats
+  if (ev.target.tagName === 'BUTTON' || ev.target.closest('form')) return;
+
+  const row = ev.target.closest('tr');
+  if (!row) return;
+  const id = row.dataset.id;
+  // creem un form i l'enviem (POST) amb name=carregar
+  const f = document.createElement('form');
+  f.method = 'post';
+  f.style.display = 'none';
+  const inp = document.createElement('input');
+  inp.type = 'hidden'; inp.name = 'id'; inp.value = id; f.appendChild(inp);
+  const inp2 = document.createElement('input');
+  inp2.type = 'hidden'; inp2.name = 'carregar'; inp2.value = '1'; f.appendChild(inp2);
+  document.body.appendChild(f);
+  f.submit();
+});
+</script>
+</body>
+</html>

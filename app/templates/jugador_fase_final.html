@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fase Final</title>
+
+<style>
+body {
+    background:#f2f2f2;
+    margin:0;
+    font-family:Arial, sans-serif;
+}
+
+.container {
+    padding:25px;
+    max-width:600px;
+    margin:0 auto;
+    text-align:center;
+}
+
+h1 {
+    color:#800000;
+    font-size:clamp(24px, 6vw, 32px);
+    font-weight:900;
+    margin-bottom:25px;
+}
+
+/* ───── BUSCADOR ───── */
+.search-box {
+    margin: 20px auto 30px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+}
+
+.search-row {
+    display:flex;
+    gap:10px;
+    width:100%;
+    justify-content:center;
+}
+
+input {
+    width:70%;
+    max-width:260px;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #aaa;
+    font-size:16px;
+}
+
+.btn {
+    padding:12px 18px;
+    background:#800000;
+    color:white;
+    border-radius:12px;
+    font-size:15px;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+    box-shadow:0 3px 8px rgba(0,0,0,0.15);
+}
+.btn:hover { background:#a00000; }
+
+/* Resultats autocompletar */
+#searchResults {
+    display:none;
+    width:80%;
+    max-width:260px;
+    background:white;
+    margin-top:10px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    max-height:220px;
+    overflow-y:auto;
+    animation:fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity:0; transform:translateY(-4px); }
+    to { opacity:1; transform:translateY(0); }
+}
+
+/* ───── CAIXES DE FASE ───── */
+.phase-box {
+    background:white;
+    width:90%;
+    max-width:360px;
+    margin:18px auto;
+    padding:18px;
+    border-radius:18px;
+    border:2px solid #800000;
+}
+.phase-title {
+    color:#800000;
+    margin:0;
+    font-size:clamp(20px, 5vw, 24px);
+    font-weight:800;
+}
+
+/* Botons a dins els quadres */
+.phase-box .btn {
+    width:80%;
+    margin:12px auto 0;
+}
+
+/* ───── BOTÓ TORNAR ───── */
+.btn-back {
+    margin-top:35px;
+    width:200px;
+    background:#555 !important;
+}
+.btn-back:hover { background:#666 !important; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>FASE FINAL</h1>
+
+<!-- BUSCADOR -->
+<div class="search-box">
+
+    <div class="search-row">
+        <input id="searchInput" placeholder="Nom de l’equip…">
+        <button class="btn" onclick="buscarManual()">Cercar</button>
+    </div>
+
+    <div id="searchResults"></div>
+</div>
+
+</div> <!-- FI container inicial -->
+
+<script>
+// Normalitzar accents
+function normalizeText(t){
+    return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+
+// CERCA MANUAL
+async function buscarManual(){
+    const q = normalizeText(document.getElementById("searchInput").value.trim());
+    if(!q) return;
+
+    const res = await fetch(`/jugador/api/buscar_equip_fasefinal?q=${q}`);
+    const data = await res.json();
+
+    if(data.ok && data.resultats.length > 0){
+        window.location.href = `/jugador/fase-final/view/${data.resultats[0].fase}`;
+    } else {
+        alert("Equip no trobat.");
+    }
+}
+
+// CERCA EN TEMPS REAL
+document.addEventListener("DOMContentLoaded", ()=>{
+    const input = document.getElementById("searchInput");
+    const box   = document.getElementById("searchResults");
+
+    input.addEventListener("input", async ()=>{
+        const raw = input.value.trim();
+        const q   = normalizeText(raw);
+
+        if(!q){
+            box.style.display="none";
+            box.innerHTML="";
+            return;
+        }
+
+        const res = await fetch(`/jugador/api/buscar_equip_fasefinal?q=${q}`);
+        const data = await res.json();
+
+        if(!data.ok || !data.resultats.length){
+            box.innerHTML = `
+                <div style="padding:12px; color:#444; text-align:center;">❌ No s’han trobat equips</div>
+            `;
+            box.style.display="block";
+            return;
+        }
+
+        // Ordenar
+        data.resultats.sort((a,b)=>a.equip.localeCompare(b.equip));
+
+        box.innerHTML="";
+        data.resultats.forEach(r=>{
+            const div = document.createElement("div");
+            div.style.padding="12px";
+            div.style.cursor="pointer";
+            div.style.borderBottom="1px solid #eee";
+            div.style.transition="0.2s";
+            div.innerHTML = `
+                <strong>${r.equip}</strong><br>
+                <span style="color:#800000;font-size:14px;">Fase: ${r.fase}</span>
+            `;
+            div.onclick   = ()=>window.location.href=`/jugador/fase-final/view/${r.fase}`;
+            div.onmouseover=()=>div.style.background="#ffecec";
+            div.onmouseout =()=>div.style.background="white";
+
+            box.appendChild(div);
+        });
+
+        box.style.display="block";
+    });
+});
+</script>
+
+<!-- LLISTA DE FASES -->
+{% for fase, n in fases.items() %}
+<div class="phase-box">
+    <h2 class="phase-title">{{ fase.upper() }}</h2>
+    <p>{{ n }} equips classificats</p>
+
+    <a class="btn" style="background:#444;" href="/jugador/fase-final/equips/{{ fase }}">
+        📋 Equips - {{ fase.upper() }}
+    </a>
+
+    <a class="btn" href="/jugador/fase-final/view/{{ fase }}">
+        🧩 Veure Quadres
+    </a>
+</div>
+{% endfor %}
+
+<a class="btn btn-back" href="/jugador">⬅ Tornar</a>
+
+</body>
+</html>

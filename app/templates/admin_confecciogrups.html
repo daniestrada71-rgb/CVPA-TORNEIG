@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>CONFECCIÓ DE GRUPS</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#f0f0f0;
+    margin:0;
+    padding:20px;
+}
+h1 {
+    color:#800000;
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.info {
+    text-align:center;
+    margin-bottom:10px;
+    font-weight:bold;
+    color:#800000;
+}
+
+/* Barra superior */
+.top-bar-form {
+    max-width: 600px;
+    margin: 0 auto 10px auto;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:12px;
+    align-items:center;
+}
+.top-bar-form label {
+    font-weight:bold;
+    color:#333;
+}
+.top-bar-form input[type="number"] {
+    width:70px;
+    padding:4px 6px;
+    border-radius:6px;
+    border:1px solid #aaa;
+    text-align:center;
+}
+
+/* Desplegables ─ capacitat grups */
+.desplegables-container {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+    margin-top:10px;
+    margin-bottom:5px;
+}
+.mini-grup {
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 0 4px rgba(0,0,0,0.15);
+    padding:6px 10px;
+    width:100px;
+    text-align:center;
+}
+.mini-grup label {
+    display:block;
+    font-size:13px;
+    color:#800000;
+    margin-bottom:3px;
+}
+.input-mini {
+    width:50px;
+    padding:3px;
+    font-size:13px;
+    text-align:center;
+}
+
+/* Grups */
+.grup-container {
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    justify-content:center;
+    align-items:flex-start;
+    margin-top:20px;
+}
+.grup {
+    background:#ffffff;
+    padding:10px 15px;
+    border-radius:8px;
+    box-shadow:0 0 5px rgba(0,0,0,0.2);
+    text-align:center;
+    min-width:250px;
+    width:250px;
+    min-height:280px;
+    display:flex;
+    flex-direction:column;
+}
+
+/* Header de grup */
+.grup-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:6px;
+}
+.grup h3 {
+    border-bottom:2px solid #800000;
+    padding-bottom:3px;
+    margin:0;
+    font-size:18px;
+}
+
+/* Selector de pistes */
+.pista-select {
+    font-size:12px;
+    text-align:right;
+}
+.pista-select label {
+    color:#800000;
+    font-weight:bold;
+}
+.pista-select select {
+    padding:2px 4px;
+    border-radius:5px;
+    border:1px solid #aaa;
+    font-size:12px;
+    min-width:60px;
+}
+
+/* Taula equips */
+table.equip-table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:8px;
+}
+table.equip-table th, table.equip-table td {
+    border-bottom:1px solid #ddd;
+    padding:4px;
+    font-size:14px;
+}
+table.equip-table th {
+    background:#f8f8f8;
+    font-weight:bold;
+}
+table.equip-table tr:last-child td {
+    border-bottom:none;
+}
+
+/* Botons */
+.botons {
+    text-align:center;
+    margin-top:15px;
+}
+button {
+    margin:5px;
+    padding:10px 20px;
+    font-size:16px;
+    background:#800000;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+/* Drag */
+.sortable-chosen { background:#ffe8e8 !important; }
+.sortable-ghost { opacity:0.6; }
+
+.wrap a {
+    display:inline-block;
+    margin-bottom:10px;
+    background:#800000;
+    color:white;
+    padding:8px 12px;
+    border-radius:8px;
+    text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>CONFECCIÓ DE GRUPS</h1>
+
+<div class="info">
+    Total equips: <span id="total_equips">{{ total_equips }}</span>
+</div>
+
+<div class="wrap">
+    <a href="/admin">⬅ Tornar</a>
+</div>
+
+{% if msg %}
+<p style="text-align:center; color:green; font-weight:bold;">{{ msg }}</p>
+{% endif %}
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+
+<!-- FORMULARI PRINCIPAL -->
+<form method="POST" action="/admin/confecciogrups">
+
+    <!-- Barra superior -->
+    <div class="top-bar-form">
+        <div>
+            <label>Núm. de grups:</label>
+            <input type="number" id="num_grups" name="num_grups"
+                   min="1" max="{{ max_grups }}" value="{{ num_grups }}"
+                   onchange="generarDesplegables()">
+        </div>
+
+        <div>
+            <label>Núm. pistes:</label>
+            <input type="number" id="num_pistes" name="num_pistes"
+                   min="1" max="20" value="{{ num_pistes or 4 }}"
+                   onchange="regenerarSelectsPistes()">
+        </div>
+    </div>
+
+    <!-- Desplegables capacitats -->
+    <div id="desplegables_grups" class="desplegables-container">
+        {% for i in range(num_grups) %}
+        <div class="mini-grup">
+            <label>Grup {{ i+1 }}:</label>
+            <input type="number" name="grup_{{ i+1 }}"
+                   min="0" max="{{ total_equips }}" value="0"
+                   onchange="actualitzarRestants()" class="input-mini">
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="info">
+        Equips restants per assignar: <span id="restants">{{ total_equips }}</span>
+    </div>
+
+    <div class="botons">
+        <button type="submit">Generar grups</button>
+        <button type="submit" name="guardar" value="1">💾 Guardar</button>
+    </div>
+
+    <!-- Aquí guardarem l’ordre del drag & drop -->
+    <input type="hidden" id="ordre_json" name="ordre_json">
+
+    {% if grups %}
+    <div class="grup-container">
+
+        {% for i in range(1, num_grups+1) %}
+        <div class="grup">
+
+            <!-- CAPÇALERA DEL GRUP -->
+            <div class="grup-header">
+                <h3>Grup {{ i }}</h3>
+
+                <!-- SELECT PISTA -->
+                <div class="pista-select">
+                    <label>Pista</label>
+                    <select name="pista_{{ i }}" class="select-pista" data-grup="{{ i }}">
+                        <option value="">–</option>
+                        {% for p in range(1, (num_pistes or 4)+1) %}
+                            <option value="{{ p }}"
+                                {% if pistes and pistes.get(i) == p %}selected{% endif %}>
+                                {{ p }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- TAULA EQUIPS -->
+            <table class="equip-table equip-list" id="grup-{{i}}">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Equip</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in grups[i] %}
+                    <tr data-id="{{ e[0] }}">
+                        <td>{{ loop.index }}</td>
+                        <td>{{ e[2] }}</td>
+                        <td>{{ e[3] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+        {% endfor %}
+
+    </div>
+    {% endif %}
+
+</form>
+
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+const totalEquips = {{ total_equips }};
+
+/* Genera els petits inputs de "Grup X: N equips" */
+function generarDesplegables() {
+    const container = document.getElementById('desplegables_grups');
+    const n = parseInt(document.getElementById('num_grups').value) || 0;
+    container.innerHTML = '';
+
+    for (let i = 1; i <= n; i++) {
+        const div = document.createElement('div');
+        div.className = 'mini-grup';
+        div.innerHTML = `
+            <label>Grup ${i}:</label>
+            <input type="number"
+                   name="grup_${i}"
+                   min="0"
+                   max="${totalEquips}"
+                   value="0"
+                   onchange="actualitzarRestants()"
+                   class="input-mini">
+        `;
+        container.appendChild(div);
+    }
+    actualitzarRestants();
+}
+
+/* Recalcula quants equips queden per assignar */
+function actualitzarRestants() {
+    const inputs = document.querySelectorAll('#desplegables_grups input[type=number]');
+    let assignats = 0;
+    inputs.forEach(input => {
+        assignats += parseInt(input.value) || 0;
+    });
+    const restants = Math.max(0, totalEquips - assignats);
+    document.getElementById('restants').textContent = restants;
+}
+
+/* Renumerar files d'un grup després de canvis de drag & drop */
+function renumerarGrup(grupElement) {
+    grupElement.querySelectorAll('tbody tr').forEach((row, idx) => {
+        const cell = row.querySelector('td:first-child');
+        if (cell) cell.textContent = idx + 1;
+    });
+}
+
+/* Desa en JSON l'ordre actual dels equips per grup */
+function saveOrderToHidden() {
+    let data = {};
+    document.querySelectorAll('.equip-list').forEach(table => {
+        const grup = table.id.replace('grup-', '');
+        const equips = [];
+        table.querySelectorAll('tbody tr').forEach((row, idx) => {
+            equips.push([row.dataset.id, idx + 1]);
+        });
+        data[grup] = equips;
+    });
+    document.getElementById('ordre_json').value = JSON.stringify(data);
+}
+
+/* Inicialitza el drag & drop amb SortableJS */
+function inicialitzarDragDrop() {
+    document.querySelectorAll('.equip-list').forEach(table => {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        new Sortable(tbody, {
+            group: 'grups',
+            animation: 150,
+            onEnd: evt => {
+                renumerarGrup(evt.to.closest('table'));
+                if (evt.from !== evt.to) {
+                    renumerarGrup(evt.from.closest('table'));
+                }
+                saveOrderToHidden();
+            }
+        });
+    });
+}
+
+/* Evitar que la mateixa pista estigui assignada a dos grups alhora */
+function updatePistaOptions() {
+    const selects = document.querySelectorAll('.select-pista');
+    const used = new Set();
+
+    // pistes ja seleccionades
+    selects.forEach(sel => {
+        if (sel.value) used.add(sel.value);
+    });
+
+    selects.forEach(sel => {
+        const current = sel.value;
+        sel.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) return; // ignore "–"
+            opt.disabled = false;
+            if (used.has(opt.value) && opt.value !== current) {
+                opt.disabled = true;
+            }
+        });
+    });
+}
+
+/* Afegeix events change a tots els selects de pista */
+function inicialitzarPistes() {
+    const selects = document.querySelectorAll('.select-pista');
+    selects.forEach(sel => {
+        sel.addEventListener('change', updatePistaOptions);
+    });
+    updatePistaOptions();
+}
+
+/* Regenera les opcions de les pistes quan canviem el número de pistes */
+function regenerarSelectsPistes() {
+    const numPistes = parseInt(document.getElementById("num_pistes").value) || 1;
+    const selects = document.querySelectorAll(".select-pista");
+
+    selects.forEach(sel => {
+        const valorActual = sel.value;
+        sel.innerHTML = '<option value="">–</option>';
+
+        for (let p = 1; p <= numPistes; p++) {
+            const opt = document.createElement("option");
+            opt.value = p;
+            opt.textContent = p;
+            sel.appendChild(opt);
+        }
+
+        if (valorActual && parseInt(valorActual) <= numPistes) {
+            sel.value = valorActual;
+        } else {
+            sel.value = "";
+        }
+    });
+
+    updatePistaOptions();
+}
+
+/* Inici */
+document.addEventListener('DOMContentLoaded', () => {
+    actualitzarRestants();
+    inicialitzarDragDrop();
+    inicialitzarPistes();
+    regenerarSelectsPistes(); // per assegurar que el num_pistes de l'input governa les opcions
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Base de dades · Equips</title>
+<style>
+  body {
+    font-family: Arial;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    padding: 30px 10px;
+  }
+  .wrap {
+    width: 1100px;
+  }
+
+  /* --- Capçalera --- */
+  h2 {
+    color: #800000;
+    text-align: center;
+    margin-bottom: 5px; /* 👈 menys espai sota el títol */
+  }
+
+  .top-bar {
+    text-align: left;
+    margin-bottom: 50px; /* 👈 més espai amb el formulari */
+  }
+
+  .top-bar a {
+    display: inline-block;
+    background: #800000;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .top-bar a:hover {
+    background: #a00000;
+  }
+
+  /* --- Formulari --- */
+  .form-box {
+    margin-bottom: 30px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #ccc;
+    background: white;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .form-box.editing { background: #f0394d; border-color: black; }
+
+  input[type=text], input[type=number] {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #bbb;
+  }
+
+  .btn { padding: 7px 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-weight: bold; }
+  .btn-add { background: green; }
+  .btn-mod { background: orange; }
+  .btn-delall { background: red; }
+
+  .controls { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .search { margin-left: auto; }
+
+  /* --- Taula --- */
+  table { width: 100%; border-collapse: collapse; background: white; }
+  th, td { padding: 8px 10px; border: 1px solid #e0e0e0; text-align: center; }
+  th { background: #800000; color: white; cursor: pointer; user-select: none; }
+  tr.row-hover:hover { background: #e0e0e0; cursor: pointer; }
+  .selectedRow { outline: 3px solid #000; }
+
+  .actions form { display: inline-block; margin: 0 4px; }
+  .small-btn { padding: 7px 12px; border-radius: 6px; border: none; color: white; }
+  .small-btn.del { background: #444; }
+  .small-btn.edit { background: #ff8c00; }
+
+  .note { color: #666; font-size: 13px; }
+
+  .btn-excel {
+    background-color: #7a7f84;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+  }
+  .btn-excel:hover { background-color: #676c70; }
+
+  .dupRow { background: #f0394d !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 👇 Títol centrat -->
+  <h2>BASE DE DADES EQUIPS</h2>
+
+  <!-- 👇 Botó Tornar a sota, alineat esquerra -->
+  <div class="top-bar">
+    <a href="/admin">⬅ Tornar</a>
+  </div>
+
+
+
+
+  <div class="controls">
+    <!-- Formulari principal -->
+    <form id="mainForm" method="post" style="flex:1;">
+      <div id="formBox" class="form-box {% if equip_editant %}editing{% endif %}">
+        <input type="hidden" name="id" value="{{ equip_editant[0] if equip_editant else '' }}">
+        <input type="text" name="nom_participants" placeholder="Jugadors" value="{{ equip_editant[1] if equip_editant else '' }}" required>
+        <input type="text" name="nom_equip" placeholder="Equip" value="{{ equip_editant[2] if equip_editant else '' }}" required>
+        <input type="number" name="valor" placeholder="Valor (0-10)" min="0" max="10" value="{{ equip_editant[3] if equip_editant else '' }}" required>
+        <input type="text" name="email" placeholder="Email" value="{{ equip_editant[4] if equip_editant else '' }}">
+        <input type="text" name="telefon" placeholder="Telèfon" value="{{ equip_editant[5] if equip_editant else '' }}">
+        {% if equip_editant %}
+          <button name="modificar" class="btn btn-mod">💾 Guardar canvis</button>
+        {% else %}
+          <button name="afegir" class="btn btn-add">➕ Afegir equip</button>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Botó eliminar tots -->
+    <form method="post" style="margin-left:8px;">
+      <button name="eliminar_tot" class="btn btn-delall">🚨 Eliminar tots</button>
+    </form>
+
+    <!-- Search -->
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="🔍 Cerca (jugadors, equip, email, tel)" style="padding:6px; width:360px; border-radius:6px; border:1px solid #bbb;">
+    </div>
+  </div>
+
+  <table id="dataTable" aria-describedby="taula equips">
+    <thead>
+      <tr>
+        <th data-col="index">#</th>
+        <th data-col="jugadors">JUGADORS</th>
+        <th data-col="equip">EQUIP</th>
+        <th data-col="valor">VALOR</th>
+        <th data-col="email">EMAIL</th>
+        <th data-col="telefon">TELÈFON</th>
+        <th data-col="accions">ACCIONS</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in equips %}
+	  <tr class="row-hover
+           {% if e[3] >= 8 %}tag-alt{% elif e[3] >= 4 %}tag-mitja{% else %}tag-baix{% endif %}
+           {% if equip_editant and equip_editant[0] == e[0] %}selectedRow{% endif %}"
+    data-id="{{ e[0] }}">
+        <td class="col-index">{{ loop.index }}</td>
+        <td class="col-jugadors">{{ e[1] }}</td>
+        <td class="col-equip">{{ e[2] }}</td>
+		<td class="col-valor">{{ e[3] }}</td>
+        <td class="col-email">{{ e[4] }}</td>
+        <td class="col-telefon">{{ e[5] }}</td>
+        <td class="actions">
+          <form method="post" style="display:inline;">
+            <input type="hidden" name="id" value="{{ e[0] }}">
+            <button name="eliminar" class="small-btn del" title="Eliminar">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="note">Fes clic a qualsevol fila per carregar-la al formulari d'edició superior.</p>
+
+  <div style="width:100%; text-align:center; margin-top:20px; margin-bottom:30px;">
+    <form method="GET" action="/admin/basedades/export" style="display:inline-block; margin-right:10px;">
+      <button type="submit" class="btn-excel">Exportar Excel</button>
+    </form>
+
+    <form method="post" action="/admin/basedades/import" enctype="multipart/form-data" style="display:inline-block;">
+      <input type="file" name="fitxer_excel" accept=".xlsx">
+      <button type="submit" class="btn-excel">Importar Excel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* Filtrat en temps real */
+const searchInput = document.getElementById('searchInput');
+const table = document.getElementById('dataTable');
+const tbody = table.querySelector('tbody');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((r) => {
+    const text = (r.querySelector('.col-jugadors').textContent + ' ' + r.querySelector('.col-equip').textContent + ' ' + r.querySelector('.col-email').textContent + ' ' + r.querySelector('.col-telefon').textContent).toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+  let idx = 1;
+  tbody.querySelectorAll('tr').forEach((r) => {
+    if (r.style.display === 'none') return;
+    r.querySelector('.col-index').textContent = idx++;
+  });
+});
+
+/* Ordenació per columna */
+const headers = table.querySelectorAll('th[data-col]');
+headers.forEach((th, colIndex) => {
+  if (th.dataset.col === 'accions') return;
+  let asc = true;
+  th.addEventListener('click', () => {
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none');
+    rows.sort((a,b) => {
+      let aText = a.children[colIndex].textContent.trim().toLowerCase();
+      let bText = b.children[colIndex].textContent.trim().toLowerCase();
+      if (th.dataset.col === 'valor') {
+        return asc ? (Number(aText) - Number(bText)) : (Number(bText) - Number(aText));
+      }
+      return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    asc = !asc;
+    let idx=1; tbody.querySelectorAll('tr').forEach(r => { if (r.style.display!=='none') r.querySelector('.col-index').textContent = idx++; });
+  });
+});
+
+/* Click fila → POST */
+tbody.addEventListener('click', function(ev) {
+  if (ev.target.tagName === 'BUTTON' || ev.target.closest('form')) return;
+  const row = ev.target.closest('tr');
+  if (!row) return;
+  const id = row.dataset.id;
+  const f = document.createElement('form');
+  f.method = 'post'; f.style.display = 'none';
+  f.innerHTML = `<input type="hidden" name="id" value="${id}"><input type="hidden" name="carregar" value="1">`;
+  document.body.appendChild(f); f.submit();
+});
+
+/* Marcar fila seleccionada */
+tbody.addEventListener('click', function(ev) {
+  const row = ev.target.closest('tr');
+  if (!row) return;
+  tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selectedRow'));
+  row.classList.add('selectedRow');
+});
+
+/* Detectar duplicats */
+function marcarDuplicatsEquip(){
+  let files = document.querySelectorAll("#dataTable tbody tr");
+  let comptador = {};
+  files.forEach(tr=>{
+    let tdEquip = tr.querySelector(".col-equip");
+    if(!tdEquip) return;
+    let nom = tdEquip.innerText.trim();
+    comptador[nom] = (comptador[nom]||0)+1;
+  });
+  files.forEach(tr=>{
+    let tdEquip = tr.querySelector(".col-equip");
+    if(!tdEquip) return;
+    let nom = tdEquip.innerText.trim();
+    if(comptador[nom] > 1){
+        tr.classList.add("dupRow");
+    } else {
+        tr.classList.remove("dupRow");
+    }
+  });
+}
+window.addEventListener("load", marcarDuplicatsEquip);
+</script>
+</body>
+</html>

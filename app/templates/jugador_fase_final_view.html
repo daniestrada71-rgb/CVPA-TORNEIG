@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Quadre Final {{ fase }}</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { 
+    background:#f2f2f2;
+    margin:0; 
+    font-family:Arial, sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+}
+
+/* Títol */
+h1 { 
+    text-align:center; 
+    color:#800000; 
+    padding:20px 15px; 
+    font-size:clamp(22px, 5vw, 30px); 
+    font-weight:900;
+}
+
+/* Marc del contingut */
+.frame { 
+    flex:1;
+    width:100%;
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 10px;
+}
+
+/* Iframe responsive */
+iframe {
+    width:100%;
+    border:none;
+    border-radius:12px;
+    min-height:65vh;
+    height:75vh;
+    background:white;
+    box-shadow:0 3px 10px rgba(0,0,0,0.15);
+}
+
+/* Footer */
+footer {
+    text-align:center;
+    padding:25px 0;
+}
+
+/* Botó tornar */
+.back-btn {
+    display:inline-block;
+    width:200px;
+    padding:14px;
+    background:#555;
+    color:white;
+    border-radius:12px;
+    text-decoration:none;
+    font-size:18px;
+}
+
+.back-btn:hover {
+    background:#666;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>QUADRE FINAL — {{ fase }}</h1>
+
+<div class="frame">
+    <iframe 
+        src="/admin/fasefinal/visualitzar/{{ fase }}">
+    </iframe>
+</div>
+
+<footer>
+    <a href="/jugador/fase-final" class="back-btn">⬅ Tornar</a>
+</footer>
+
+</body>
+</html>

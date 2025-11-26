@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Configuració desada</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f7f7f7;
+  padding: 40px;
+}
+.msg {
+  background: #e6ffe6;
+  border: 1px solid #28a745;
+  color: #155724;
+  padding: 20px;
+  display: inline-block;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+a {
+  display: block;
+  margin-top: 20px;
+  color: white;
+  background: #800000;
+  padding: 10px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+a:hover {
+  background: #a00000;
+}
+</style>
+</head>
+<body>
+  <div class="msg">✅ Configuració de fases guardada correctament!</div>
+  <a href="{{ url_for('admin_fasefinal.fase_final_classificacio') }}">⬅ Tornar a Classificació</a>
+</body>
+</html>

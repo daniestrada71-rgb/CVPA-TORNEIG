@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Fase Final - Classificació Única</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  padding: 20px;
+}
+h1 {
+  color: #800000;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.volver {
+  margin-left: 5%;
+  margin-bottom: 25px;
+}
+.btn {
+  background: #800000;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn:hover {
+  background: #a00000;
+}
+.btn-blue {
+  background-color: #1E90FF;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-blue:hover {
+  background-color: #187bcd;
+}
+table {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  margin: 20px auto;
+  background: #fff;
+  width: 90%;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+}
+th {
+  background: #800000;
+  color: white;
+  padding: 8px;
+}
+td {
+  padding: 8px;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+tr:nth-child(even) {
+  background-color: #fafafa;
+}
+.dragging {
+  background: #ffe4e1;
+  opacity: 0.8;
+}
+.botons {
+  text-align: center;
+  margin-top: 25px;
+}
+<style>
+.btn-delete {
+  background: #b30000;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-delete:hover {
+  background: #ff0000;
+}
+</style>
+
+</style>
+</head>
+
+<body>
+<h1>CLASSIFICACIÓ ÚNICA</h1>
+
+<!-- 🔙 Botó Tornar -->
+<div class="volver">
+  <a href="{{ url_for('main.admin_menu') }}" class="btn">⬅ Tornar</a>
+</div>
+
+<!-- 🏆 Taula de classificació -->
+<table id="taula">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Equip</th>
+      <th>Punts</th>
+      <th>DIF</th>
+      <th>Pos. Grup</th>
+      <th>Grup</th>
+	  <th>Accions</th>
+    </tr>
+  </thead>
+  <tbody id="llista">
+    {% for e in classificacio %}
+    <tr data-equip="{{ e.equip }}" data-punts="{{ e.punts }}" data-dif="{{ e.dif }}" data-pos="{{ e.pos }}" data-grup="{{ e.grup }}">
+      <td>{{ loop.index }}</td>
+      <td style="text-align:left; font-weight:bold;">{{ e.equip }}</td>
+      <td>{{ e.punts }}</td>
+      <td>{{ e.dif }}</td>
+      <td>{{ e.pos }}</td>
+      <td>{{ e.grup }}</td>
+	  <td>
+	  <button class="btn-delete" onclick="eliminarEquip('{{ e.equip }}')">🗑️</button>
+</td>
+
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- 🧮 Botons d'acció -->
+<!-- 🧮 Botons d'acció -->
+<div class="botons">
+
+  <!-- Guardar classificació -->
+  <button id="guardarBtn" class="btn">💾 Guardar Classificació</button>
+
+  <!-- Generar fases -->
+  <a href="{{ url_for('admin_fasefinal.configurar_fases', edit=1) }}" class="btn btn-blue">
+    ⚙️ Generar Fases
+  </a>
+  <button class="btn btn-blue" onclick="mostrarRecuperar()">♻ Recuperar Equips</button>
+
+
+  <!-- Recalcular classificació (via JS → /admin/fasefinal/recalcular) -->
+  <button id="btnRecalcular" class="btn">🔄 Recalcular Classificació</button>
+  
+
+</div>
+<!-- MODAL RECUPERAR EQUIPS -->
+<div id="recuperarModal" 
+     style="display:none; position:fixed; top:50%; left:50%;
+            transform:translate(-50%, -50%); background:white;
+            padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.3); 
+            width:300px; z-index:9999;">
+
+  <h3>Equips Eliminats</h3>
+  <div id="llistaEliminats">Carregant...</div>
+
+  <button onclick="tancarModal()" class="btn" style="margin-top:15px;">Tancar</button>
+</div>
+
+
+<!-- ✅ Script principal: Drag & Drop + Guardar + Missatges -->
+<script>
+const tbody = document.getElementById('llista');
+new Sortable(tbody, {
+  animation: 150,
+  ghostClass: 'dragging',
+  onEnd: () => {
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr, i) => {
+      tr.querySelector('td:first-child').innerText = i + 1;
+    });
+  }
+});
+
+function mostrarMissatge(text, tipus = "ok") {
+  const msg = document.createElement("div");
+  msg.textContent = text;
+  msg.style.position = "fixed";
+  msg.style.top = "20px";
+  msg.style.right = "20px";
+  msg.style.padding = "10px 16px";
+  msg.style.borderRadius = "8px";
+  msg.style.fontWeight = "bold";
+  msg.style.zIndex = "9999";
+  msg.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+  msg.style.transition = "opacity 0.5s ease";
+  msg.style.opacity = "1";
+  
+  if (tipus === "ok") {
+    msg.style.background = "#28a745";
+    msg.style.color = "white";
+  } else {
+    msg.style.background = "#b22222";
+    msg.style.color = "white";
+  }
+
+  document.body.appendChild(msg);
+  setTimeout(() => { msg.style.opacity = "0"; }, 2000);
+  setTimeout(() => { msg.remove(); }, 2500);
+}
+
+document.getElementById('guardarBtn').addEventListener('click', async () => {
+  const files = Array.from(document.querySelectorAll('#llista tr')).map(tr => ({
+    equip: tr.dataset.equip,
+    punts: parseInt(tr.dataset.punts),
+    dif: parseInt(tr.dataset.dif),
+    pos: parseInt(tr.dataset.pos),
+    grup: parseInt(tr.dataset.grup)
+  }));
+
+  const res = await fetch('/admin/fasefinal/guardar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ordre: files })
+  });
+
+  const data = await res.json();
+  if (data.ok) {
+    mostrarMissatge("💾 Classificació guardada correctament!");
+  } else {
+    mostrarMissatge("⚠️ Error en guardar: " + (data.msg || "desconegut"), "error");
+  }
+});
+
+document.getElementById("btnRecalcular").addEventListener("click", async () => {
+  if (!confirm("Això esborrarà i regenerarà tota la classificació única segons els resultats actuals.\nVols continuar?")) 
+    return;
+
+  const res = await fetch("/admin/fasefinal/recalcular", { method: "POST" });
+  const data = await res.json();
+
+  if (data.ok) {
+    mostrarMissatge("🔄 Classificació regenerada correctament ✅");
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    mostrarMissatge("❌ Error en recalcular: " + (data.msg || "no s'ha pogut regenerar"), "error");
+  }
+});
+
+document.getElementById("btnGenerarFases").addEventListener("click", () => {
+    window.location.href = "/admin/fasefinal/configurar";
+});
+</script>
+<script>
+async function eliminarEquip(equip) {
+  if (!confirm(`Vols eliminar l’equip "${equip}" de la classificació?`)) return;
+
+  const res = await fetch('/admin/fasefinal/eliminar_equip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ equip })
+  });
+
+  const data = await res.json();
+  alert(data.msg || "Error desconegut");
+  if (data.ok) location.reload();
+}
+</script>
+<script>
+function mostrarRecuperar() {
+  document.getElementById("recuperarModal").style.display = "block";
+
+  fetch("/admin/fasefinal/eliminats")
+    .then(r => r.json())
+    .then(data => {
+      const div = document.getElementById("llistaEliminats");
+
+      if (!data.ok || data.equips.length === 0) {
+        div.innerHTML = "<i>No hi ha equips eliminats</i>";
+        return;
+      }
+
+      div.innerHTML = "";
+      data.equips.forEach(eq => {
+        const b = document.createElement("button");
+        b.className = "btn-blue";
+        b.style.margin = "5px 0";
+        b.innerText = "Recuperar " + eq.equip;
+        b.onclick = () => recuperar(eq.equip);
+        div.appendChild(b);
+      });
+    });
+}
+
+function tancarModal() {
+  document.getElementById("recuperarModal").style.display = "none";
+}
+
+function recuperar(equip) {
+  fetch("/admin/fasefinal/recuperar_equip", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ equip })
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert(data.msg);
+    location.reload();
+  });
+}
+</script>
+
+</body>
+</html>

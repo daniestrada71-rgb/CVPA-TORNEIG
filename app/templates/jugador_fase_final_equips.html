@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equips {{ fase }}</title>
+
+<style>
+body {
+    background: #f2f2f2;
+    font-family: Arial, sans-serif;
+    margin: 0;
+}
+
+.wrapper {
+    width: 92%;
+    max-width: 480px;
+    margin: 40px auto;
+    padding: 25px 18px;
+    background: white;
+    border-radius: 18px;
+    border: 2px solid #800000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+}
+
+h1 {
+    text-align: center;
+    color: #800000;
+    font-size: clamp(22px, 5vw, 30px);
+    margin-bottom: 25px;
+}
+
+/* 🔥 Taula responsive */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: clamp(14px, 4vw, 18px);
+}
+
+th, td {
+    padding: 12px 6px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+th {
+    background: #800000;
+    color: white;
+    font-size: clamp(14px, 4vw, 18px);
+}
+
+/* 🔥 Files alternades més netes en mòbil */
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+/* 🔙 Botó tornar */
+.btn {
+    display: block;
+    width: 80%;
+    max-width: 240px;
+    margin: 35px auto 10px;
+    padding: 14px;
+    background: #555;
+    color: white;
+    font-size: clamp(16px, 4.2vw, 18px);
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    transition: 0.2s;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+    <h1>Equips — {{ fase }}</h1>
+
+    {% if equips %}
+    <table>
+        <tr>
+            <th>Posició</th>
+            <th>Equip</th>
+        </tr>
+        {% for equip, pos in equips %}
+        <tr>
+            <td>{{ pos }}</td>
+            <td>{{ equip }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p style="text-align:center;color:#800000;font-size:18px;">No hi ha equips per aquesta fase.</p>
+    {% endif %}
+
+    <a href="/jugador/fase-final" class="btn">⬅ Tornar</a>
+</div>
+
+</body>
+</html>

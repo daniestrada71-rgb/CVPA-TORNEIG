@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Configuració de Fases Finals</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  padding: 20px;
+}
+h1 {
+  color: #800000;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.volver {
+  margin-left: 5%;
+  margin-bottom: 25px;
+}
+.info-box {
+  text-align: center;
+  background: #fff8f8;
+  color: #800000;
+  border: 1px solid #d0b0b0;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: bold;
+  width: 40%;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+form {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 50%;
+  margin: 0 auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+th {
+  background: #800000;
+  color: white;
+  padding: 10px;
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+input[type="number"] {
+  width: 80px;
+  padding: 5px;
+  text-align: center;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+.btn {
+  background: #800000;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  margin: 5px;
+}
+.btn:hover {
+  background: #a00000;
+}
+.actions {
+  text-align: center;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<h1>CONFIGURACIÓ DE FASES FINALS</h1>
+
+<div class="volver">
+  <a href="{{ url_for('admin_fasefinal.fase_final_classificacio') }}" class="btn">⬅ Tornar</a>
+</div>
+
+<!-- ℹ️ Informació total equips i restants -->
+<div class="info-box">
+  Total equips a classificació única: <b>{{ total_equips }}</b><br>
+  Equips restants: <span id="restants">{{ total_equips }}</span>
+</div>
+
+<form method="POST">
+  <table>
+    <thead>
+      <tr>
+        <th>Fase</th>
+        <th>Nombre d'equips</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set fases = ['OR', 'PLATA', 'BRONZE', 'XOU'] %}
+      {% for fase in fases %}
+      <tr>
+        <td style="font-weight:bold;">{{ fase }}</td>
+        <td>
+          <input type="number" name="{{ fase }}" value="{{ dades.get(fase, 0) }}" min="0" step="1" required class="fase-input">
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="actions">
+    <button type="submit" class="btn">💾 Guardar configuració</button>
+  </div>
+</form>
+
+<script>
+// 🎯 Actualitza el comptador d’equips restants
+const total = {{ total_equips | default(0) }};
+const restants = document.getElementById('restants');
+const inputs = document.querySelectorAll('.fase-input');
+
+function recalcular() {
+  const suma = Array.from(inputs).reduce((acc, inp) => acc + (parseInt(inp.value) || 0), 0);
+  restants.textContent = total - suma;
+  restants.style.color = (total - suma < 0) ? 'red' : '#800000';
+}
+
+inputs.forEach(inp => inp.addEventListener('input', recalcular));
+recalcular();
+</script>
+
+</body>
+</html>

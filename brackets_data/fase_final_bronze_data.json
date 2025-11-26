@@ -1,0 +1,114 @@
+{
+  "1": {
+    "slot1": "PESATS",
+    "slot2": "ENCERT",
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "2": {
+    "slot1": "CATAS",
+    "slot2": "PASTISSERS",
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "3": {
+    "slot1": "PESAT",
+    "slot2": "TARTS",
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "4": {
+    "slot1": "CATA",
+    "slot2": "BARQUES",
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "5": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "6": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "7": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "8": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "9": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "10": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "11": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "12": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "13": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  },
+  "14": {
+    "slot1": null,
+    "slot2": null,
+    "winner": null,
+    "loser": null,
+    "fg1": "black",
+    "fg2": "black"
+  }
+}

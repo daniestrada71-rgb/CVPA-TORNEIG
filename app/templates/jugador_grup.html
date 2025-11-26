@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grup {{ grup }}</title>
+
+<style>
+body {
+    background: #f2f2f2;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #800000;
+    font-size: 26px;
+}
+
+.table {
+    width: 90%;
+    margin: 25px auto;
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #800000;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+.back-btn {
+    display: block;
+    width: 200px;
+    margin: 30px auto;
+    background: #555;
+    padding: 14px;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+/* Especial per pantalles petites */
+@media (max-width: 480px) {
+    th, td {
+        padding: 8px;
+    }
+	}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>RESULTATS I CLASSIFICACIÓ — GRUP {{ grup }}</h1>
+
+{% if pista %}
+    <h2 style="color:#333; margin-top:-8px; font-size:22px;">
+        🏐 Pista assignada: <b>{{ pista }}</b>
+    </h2>
+{% else %}
+    <h2 style="color:#777; margin-top:-8px; font-size:20px; font-style:italic;">
+        Sense pista assignada
+    </h2>
+{% endif %}
+
+
+<div class="table">
+    <h3>PARTITS</h3>
+    <table>
+        <tr>
+            <th>EQUIP 1</th><th>P1</th><th>P2</th><th>EQUIP 2</th><th>ÀRBITRE</th>
+        </tr>
+
+        {% for p in partits %}
+        <tr>
+            <td>{{ p[1] }}</td>
+            <td>{{ p[4] }}</td>
+            <td>{{ p[5] }}</td>
+            <td>{{ p[2] }}</td>
+            <td>{{ p[3] or "-" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="table">
+    <h3>CLASSIFICACIÓ</h3>
+    <table>
+        <tr>
+            <th>EQUIP</th>
+            <th>PJ</th>
+            <th>PUNTS</th>
+            <th>PF</th>
+            <th>PC</th>
+            <th>DIF.</th>
+        </tr>
+
+        {% for eq, stats in classificacio %}
+        <tr>
+            <td>{{ eq }}</td>
+            <td>{{ stats.pj }}</td>
+            <td>{{ stats.punts }}</td>
+            <td>{{ stats.favor }}</td>
+            <td>{{ stats.contra }}</td>
+            <td>{{ stats.diferencia }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<a class="back-btn" href="/jugador/fase-grups">⬅ Tornar</a>
+
+</div>
+</body>
+</html>
