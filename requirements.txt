@@ -1,5 +1,14 @@
-Flask==2.3.3        # per la web
-Pillow==10.0.0      # per treballar amb imatges (Image, ImageTk)
-pandas==2.1.1       # si utilitzes DataFrames en els teus scripts
-numpy==1.27.5       # si tens càlculs amb arrays
-requests==2.32.0    # si el teu projecte fa peticions HTTP
+Flask==2.2.5
+Flask_SQLAlchemy==3.1.1
+Flask_Mail==0.9.1
+gunicorn==20.1.0
+pandas
+reportlab
+xlsxwriter
+openpyxl
+requests
+jinja2
+werkzeug
+itsdangerous
+click
+
