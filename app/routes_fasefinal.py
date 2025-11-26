@@ -552,6 +552,19 @@ def api_load_bracket(fase):
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 
+@admin_fasefinal_bp.route('/admin/fasefinal/reset/<fase>', methods=['POST'])
+def reset_bracket(fase):
+    """Esborra el fitxer JSON guardat per la fase indicada."""
+    fase = fase.lower()
+    save_dir = os.path.join(os.getcwd(), 'brackets_data')
+    save_file = os.path.join(save_dir, f"fase_final_{fase}_data.json")
+
+    if os.path.exists(save_file):
+        os.remove(save_file)
+        return jsonify({"ok": True, "msg": "Quadrant reiniciat correctament!"})
+
+    return jsonify({"ok": False, "msg": "No hi havia cap quadre guardat."})
+
 
 
 
