@@ -2,8 +2,8 @@ import sqlite3
 import os
 from collections import defaultdict
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
+DB_FILE = "/tmp/cvpa.db"
+print("📌 Base de dades temporal:", DB_FILE)
 print("📌 BASE DE DADES QUE SED UTILITZA:", DB_FILE)
 
 
@@ -412,3 +412,4 @@ def obtenir_fase_final_equips(fase):
         conn.close()
 
     return equips
+
