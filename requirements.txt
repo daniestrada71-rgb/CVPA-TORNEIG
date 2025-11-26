@@ -11,4 +11,7 @@ jinja2
 werkzeug
 itsdangerous
 click
+sqlalchemy>=2.0.16
+python-dotenv
+
 
