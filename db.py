@@ -1,121 +1,324 @@
-import sqlite3
 import os
+import sqlite3
 from collections import defaultdict
+
+# --------------------------------------------------
+#  BACKEND: SQLite local o PostgreSQL (Neon)
+# --------------------------------------------------
+DATABASE_URL = os.getenv("DATABASE_URL")
+USING_POSTGRES = bool(DATABASE_URL)
+
+if USING_POSTGRES:
+    import psycopg2
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
 
-print("📌 Base de dades utilitzada:", DB_FILE)
+if USING_POSTGRES:
+    print("📌 Base de dades utilitzada: PostgreSQL (Neon)")
+else:
+    print("📌 Base de dades utilitzada:", DB_FILE)
 
-def ensure_db_exists():
-    if not os.path.exists(DB_FILE):
-        print("📌 No existeix la base de dades. Creant cvpa.db...")
-        create_db()
 
-# ----------------------------------------------------------------------
-# 🔹 CREACIÓ BASE DE DADES
-# ----------------------------------------------------------------------
+# --------------------------------------------------
+#  Helpers de connexió i execució
+# --------------------------------------------------
+def _adapt_query(q: str) -> str:
+    """
+    Adapta la sintaxi de placeholders:
+      - PostgreSQL: %s
+      - SQLite: ?
+    """
+    if USING_POSTGRES:
+        return q
+    return q.replace("%s", "?")
+
+
+def _get_sqlite_conn():
+    return sqlite3.connect(DB_FILE)
+
+
+def _get_pg_conn():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+
+def fetchall(query, params=()):
+    if USING_POSTGRES:
+        conn = _get_pg_conn()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+    else:
+        conn = _get_sqlite_conn()
+        c = conn.cursor()
+        c.execute(_adapt_query(query), params)
+        rows = c.fetchall()
+        conn.close()
+        return rows
+
+
+def execute(query, params=()):
+    if USING_POSTGRES:
+        conn = _get_pg_conn()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        conn.commit()
+        conn.close()
+    else:
+        conn = _get_sqlite_conn()
+        c = conn.cursor()
+        c.execute(_adapt_query(query), params)
+        conn.commit()
+        conn.close()
+
+
+def executemany(query, params_list):
+    if USING_POSTGRES:
+        conn = _get_pg_conn()
+        cur = conn.cursor()
+        cur.executemany(query, params_list)
+        conn.commit()
+        conn.close()
+    else:
+        conn = _get_sqlite_conn()
+        c = conn.cursor()
+        c.executemany(_adapt_query(query), params_list)
+        conn.commit()
+        conn.close()
+
+
+# --------------------------------------------------
+#  CREACIÓ / INICIALITZACIÓ BD
+# --------------------------------------------------
 def create_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    """
+    Crea totes les taules necessàries tant a SQLite com a PostgreSQL.
+    Es crida des de app/__init__.py → create_app()
+    """
+    if USING_POSTGRES:
+        conn = _get_pg_conn()
+        cur = conn.cursor()
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS equips (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom_participants TEXT,
-        nom_equip TEXT,
-        valor INTEGER,
-        email TEXT,
-        telefon TEXT,
-        grup INTEGER,
-        ordre INTEGER
-    )
-    """)
+        # Taula equips
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS equips (
+                id SERIAL PRIMARY KEY,
+                nom_participants TEXT,
+                nom_equip TEXT,
+                valor INTEGER,
+                email TEXT,
+                telefon TEXT,
+                grup INTEGER,
+                ordre INTEGER
+            )
+        """)
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS pistes_grup (
-        grup INTEGER PRIMARY KEY,
-        pista INTEGER
-    )
-    """)
+        # Taula pistes_grup
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pistes_grup (
+                grup INTEGER PRIMARY KEY,
+                pista INTEGER
+            )
+        """)
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS partits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        grup INTEGER,
-        equip1 TEXT,
-        equip2 TEXT,
-        arbitre TEXT,
-        punts1 INTEGER DEFAULT 0,
-        punts2 INTEGER DEFAULT 0,
-        jugat INTEGER DEFAULT 0
-    )
-    """)
+        # Taula partits
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS partits (
+                id SERIAL PRIMARY KEY,
+                grup INTEGER,
+                equip1 TEXT,
+                equip2 TEXT,
+                arbitre TEXT,
+                punts1 INTEGER DEFAULT 0,
+                punts2 INTEGER DEFAULT 0,
+                jugat INTEGER DEFAULT 0
+            )
+        """)
+
+        # Taula classificacio_final
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS classificacio_final (
+                id SERIAL PRIMARY KEY,
+                posicio INTEGER,
+                equip_nom TEXT,
+                punts INTEGER,
+                dif_gol INTEGER,
+                pos_grup INTEGER,
+                grup INTEGER
+            )
+        """)
+
+        # Config fases finals
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS config_fases_finals (
+                fase TEXT PRIMARY KEY,
+                num_equips INTEGER
+            )
+        """)
+
+        # Fase final equips
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS fase_final_equips (
+                id SERIAL PRIMARY KEY,
+                fase TEXT,
+                equip_nom TEXT,
+                posicio INTEGER
+            )
+        """)
+
+        # Eliminats
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS classificacio_eliminats (
+                equip_nom TEXT PRIMARY KEY,
+                punts INTEGER,
+                dif_gol INTEGER,
+                pos_grup INTEGER,
+                grup INTEGER
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+
+    else:
+        conn = _get_sqlite_conn()
+        c = conn.cursor()
+
+        # Taula equips
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS equips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom_participants TEXT,
+                nom_equip TEXT,
+                valor INTEGER,
+                email TEXT,
+                telefon TEXT,
+                grup INTEGER,
+                ordre INTEGER
+            )
+        """)
+
+        # Taula pistes_grup
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS pistes_grup (
+                grup INTEGER PRIMARY KEY,
+                pista INTEGER
+            )
+        """)
+
+        # Taula partits
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS partits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                grup INTEGER,
+                equip1 TEXT,
+                equip2 TEXT,
+                arbitre TEXT,
+                punts1 INTEGER DEFAULT 0,
+                punts2 INTEGER DEFAULT 0,
+                jugat INTEGER DEFAULT 0
+            )
+        """)
+
+        # Taula classificacio_final
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS classificacio_final (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                posicio INTEGER,
+                equip_nom TEXT,
+                punts INTEGER,
+                dif_gol INTEGER,
+                pos_grup INTEGER,
+                grup INTEGER
+            )
+        """)
+
+        # Config fases finals
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS config_fases_finals (
+                fase TEXT PRIMARY KEY,
+                num_equips INTEGER
+            )
+        """)
+
+        # Fase final equips
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS fase_final_equips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fase TEXT,
+                equip_nom TEXT,
+                posicio INTEGER
+            )
+        """)
+
+        # Eliminats
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS classificacio_eliminats (
+                equip_nom TEXT PRIMARY KEY,
+                punts INTEGER,
+                dif_gol INTEGER,
+                pos_grup INTEGER,
+                grup INTEGER
+            )
+        """)
+
+        conn.commit()
+        conn.close()
 
 
-    conn.commit()
-    conn.close()
-
-# ----------------------------------------------------------------------
+# --------------------------------------------------
 # 🔹 EQUIPS
-# ----------------------------------------------------------------------
+# --------------------------------------------------
 def obtenir_equips():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
+    return fetchall("""
         SELECT id, nom_participants, nom_equip, valor, email, telefon, grup, ordre
         FROM equips ORDER BY id ASC
     """)
-    equips = c.fetchall()
-    conn.close()
-    return equips
+
 
 def obtenir_equip(id):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT id, nom_participants, nom_equip, valor, email, telefon, grup, ordre FROM equips WHERE id=?", (id,))
-    row = c.fetchone()
-    conn.close()
-    return row
+    rows = fetchall("""
+        SELECT id, nom_participants, nom_equip, valor, email, telefon, grup, ordre
+        FROM equips
+        WHERE id=%s
+    """, (id,))
+    return rows[0] if rows else None
+
 
 def afegir_equip(nom_participants, nom_equip, valor, email, telefon):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
+    execute("""
         INSERT INTO equips (nom_participants, nom_equip, valor, email, telefon)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (nom_participants, nom_equip, valor, email, telefon))
-    conn.commit()
-    conn.close()
+
 
 def modificar_equip(id, nom_participants, nom_equip, valor, email, telefon):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        UPDATE equips SET nom_participants=?, nom_equip=?, valor=?, email=?, telefon=?
-        WHERE id=?
+    execute("""
+        UPDATE equips
+        SET nom_participants=%s, nom_equip=%s, valor=%s, email=%s, telefon=%s
+        WHERE id=%s
     """, (nom_participants, nom_equip, valor, email, telefon, id))
-    conn.commit()
-    conn.close()
+
 
 def eliminar_equip(id):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM equips WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
+    execute("""
+        DELETE FROM equips WHERE id=%s
+    """, (id,))
+
 
 def eliminar_tots_equips():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM equips")
-    c.execute("DELETE FROM sqlite_sequence WHERE name='equips'")
-    conn.commit()
-    conn.close()
+    execute("DELETE FROM equips")
+    # Reset id només a SQLite
+    if not USING_POSTGRES:
+        execute("DELETE FROM sqlite_sequence WHERE name='equips'")
 
-# ----------------------------------------------------------------------
+
+# --------------------------------------------------
 # 🔹 GRUPS
-# ----------------------------------------------------------------------
+# --------------------------------------------------
 def obtenir_grups_guardats():
     equips = obtenir_equips()
     grups = {}
@@ -132,61 +335,45 @@ def obtenir_grups_guardats():
 
     return grups
 
+
 def obtenir_grups():
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute("""
+    files = fetchall("""
         SELECT grup, ordre, nom_equip, id
         FROM equips
         WHERE grup IS NOT NULL
         ORDER BY grup ASC, ordre ASC
     """)
-    files = cur.fetchall()
-    conn.close()
     return files
 
-# ----------------------------------------------------------------------
+
+# --------------------------------------------------
 # 🔹 PARTITS
-# ----------------------------------------------------------------------
-def crear_taula_partits():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS partits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            grup INTEGER,
-            equip1 TEXT,
-            equip2 TEXT,
-            arbitre TEXT,
-            punts1 INTEGER DEFAULT 0,
-            punts2 INTEGER DEFAULT 0,
-            jugat INTEGER DEFAULT 0
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-crear_taula_partits()
-
+# --------------------------------------------------
 def generar_partits(grup_id):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT nom_equip FROM equips WHERE grup=? ORDER BY ordre", (grup_id,))
-    equips = [row[0] for row in c.fetchall()]
+    # Agafem equips del grup ordenats
+    files = fetchall("""
+        SELECT nom_equip
+        FROM equips
+        WHERE grup=%s
+        ORDER BY ordre
+    """, (grup_id,))
+    equips = [row[0] for row in files]
     N = len(equips)
 
-    c.execute("DELETE FROM partits WHERE grup=?", (grup_id,))
+    # Esborrem antics partits del grup
+    execute("DELETE FROM partits WHERE grup=%s", (grup_id,))
 
-    # Patrons
+    # Patrons segons N
     patrons = {
-        4: [(1,3,2),(0,2,3),(1,2,0),(0,3,2),(2,3,1),(0,1,3)],
-        5: [(1,3,2),(2,0,4),(4,1,3),(2,3,0),(0,4,1),(2,1,3),(3,4,0),(1,0,4),(2,4,1),(3,0,2)],
-        6: [(3,2,1),(0,5,4),(1,4,2),(2,0,3),(3,4,5),(1,5,4),(2,4,3),(3,5,1),(0,1,2),(2,5,0),
-            (4,0,1),(1,3,4),(5,4,0),(3,0,5),(1,2,3)]
+        4: [(1, 3, 2), (0, 2, 3), (1, 2, 0), (0, 3, 2), (2, 3, 1), (0, 1, 3)],
+        5: [(1, 3, 2), (2, 0, 4), (4, 1, 3), (2, 3, 0), (0, 4, 1),
+            (2, 1, 3), (3, 4, 0), (1, 0, 4), (2, 4, 1), (3, 0, 2)],
+        6: [(3, 2, 1), (0, 5, 4), (1, 4, 2), (2, 0, 3), (3, 4, 5),
+            (1, 5, 4), (2, 4, 3), (3, 5, 1), (0, 1, 2), (2, 5, 0),
+            (4, 0, 1), (1, 3, 4), (5, 4, 0), (3, 0, 5), (1, 2, 3)]
     }
 
     if N not in patrons:
-        conn.close()
         return 0
 
     inserts = []
@@ -194,45 +381,38 @@ def generar_partits(grup_id):
         if eq1 < N and eq2 < N and arb < N:
             inserts.append((grup_id, equips[eq1], equips[eq2], equips[arb]))
 
-    c.executemany("""
-        INSERT INTO partits (grup, equip1, equip2, arbitre)
-        VALUES (?, ?, ?, ?)
-    """, inserts)
+    if inserts:
+        executemany("""
+            INSERT INTO partits (grup, equip1, equip2, arbitre)
+            VALUES (%s, %s, %s, %s)
+        """, inserts)
 
-    conn.commit()
-    conn.close()
     return len(inserts)
 
+
 def obtenir_partits(grup_id):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
+    partits = fetchall("""
         SELECT id, equip1, equip2, arbitre, punts1, punts2, jugat
         FROM partits
-        WHERE grup=?
+        WHERE grup=%s
         ORDER BY id
     """, (grup_id,))
-    partits = c.fetchall()
-    conn.close()
     return partits
 
+
 def actualitzar_resultat(partit_id, punts1, punts2):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
+    execute("""
         UPDATE partits
-        SET punts1=?, punts2=?, jugat=1
-        WHERE id=?
+        SET punts1=%s, punts2=%s, jugat=1
+        WHERE id=%s
     """, (punts1, punts2, partit_id))
-    conn.commit()
-    conn.close()
+
 
 def calcular_classificacio(grup):
     partits = obtenir_partits(grup)
 
     stats = {}
 
-    # inicialitzar
     def ensure(e):
         if e not in stats:
             stats[e] = {
@@ -240,16 +420,16 @@ def calcular_classificacio(grup):
                 "favor": 0,
                 "contra": 0,
                 "diferencia": 0,
-                "pj": 0   # <<--- AFEGIT
+                "pj": 0
             }
 
     for row in partits:
-        # Format partit:
-        # (id, equip1, equip2, arbit, p1, p2, jugat)
+        # (id, equip1, equip2, arbitre, p1, p2, jugat)
         e1 = row[1]
         e2 = row[2]
         p1 = row[4]
         p2 = row[5]
+        jugat = row[6]
 
         if not e1 or not e2:
             continue
@@ -257,41 +437,34 @@ def calcular_classificacio(grup):
         ensure(e1)
         ensure(e2)
 
-        # Només comptem com a jugat si tenim números correctes
-        # Si el partit no està marcat com jugat → NO computa
-        if row[6] != 1:
+        # Només si està marcat jugat
+        if jugat != 1:
             continue
 
         p1n = int(p1) if p1 is not None else 0
         p2n = int(p2) if p2 is not None else 0
 
-        # Comptem com a partit jugat
         stats[e1]["pj"] += 1
         stats[e2]["pj"] += 1
 
-
-        # Favor / contra
         stats[e1]["favor"] += p1n
         stats[e1]["contra"] += p2n
 
         stats[e2]["favor"] += p2n
         stats[e2]["contra"] += p1n
 
-        # Punts (victòria = 3)
         if p1n > p2n:
             stats[e1]["punts"] += 3
         elif p2n > p1n:
             stats[e2]["punts"] += 3
         else:
-            # Empat (per si mai es dona)
+            # empat
             stats[e1]["punts"] += 0
             stats[e2]["punts"] += 0
 
-    # Diferència
     for e, s in stats.items():
         s["diferencia"] = s["favor"] - s["contra"]
 
-    # Ordenar classificació
     classificacio = sorted(
         stats.items(),
         key=lambda x: (x[1]["punts"], x[1]["diferencia"], x[1]["favor"]),
@@ -300,140 +473,104 @@ def calcular_classificacio(grup):
 
     return classificacio
 
-# ----------------------------------------------------------------------
+
+# --------------------------------------------------
 # 🔹 FASE FINAL
-# ----------------------------------------------------------------------
+# --------------------------------------------------
 def obtenir_config_fases_finals():
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS config_fases_finals (
-            fase TEXT PRIMARY KEY,
-            num_equips INTEGER
-        )
+    files = fetchall("""
+        SELECT fase, num_equips
+        FROM config_fases_finals
+        ORDER BY fase ASC
     """)
-    cur.execute("SELECT fase, num_equips FROM config_fases_finals ORDER BY fase ASC")
-    files = cur.fetchall()
-    conn.close()
-
     ordre = ["OR", "PLATA", "BRONZE", "XOU"]
-    return {fase.upper(): num for fase, num in sorted(files, key=lambda x: ordre.index(x[0].upper()))}
+    return {
+        fase.upper(): num
+        for fase, num in sorted(files, key=lambda x: ordre.index(x[0].upper()) if x[0].upper() in ordre else 999)
+    }
+
 
 def generar_fase_final_equips():
-    conn = sqlite3.connect(DB_FILE)
+    conn = _get_pg_conn() if USING_POSTGRES else _get_sqlite_conn()
     cur = conn.cursor()
 
+    # Ens assegurem que taula existeix
     cur.execute("""
         CREATE TABLE IF NOT EXISTS fase_final_equips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {} PRIMARY KEY,
             fase TEXT,
             equip_nom TEXT,
             posicio INTEGER
         )
-    """)
+    """.format("SERIAL" if USING_POSTGRES else "INTEGER AUTOINCREMENT"))
 
+    # Buidem
     cur.execute("DELETE FROM fase_final_equips")
 
-    cur.execute("SELECT fase, num_equips FROM config_fases_finals ORDER BY fase ASC")
-    fases = cur.fetchall()
-
-    cur.execute("SELECT equip_nom FROM classificacio_final ORDER BY posicio ASC")
-    equips = [e[0] for e in cur.fetchall()]
-
-    pos = 0
-    for fase, n in fases:
-        for i, nom in enumerate(equips[pos:pos+n], start=1):
-            cur.execute("""
-                INSERT INTO fase_final_equips (fase, equip_nom, posicio)
-                VALUES (?, ?, ?)
-            """, (fase.upper(), nom, i))
-        pos += n
-
-    conn.commit()
-    conn.close()
-
-def generar_fase_final_equips():
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS fase_final_equips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fase TEXT,
-            equip_nom TEXT,
-            posicio INTEGER
-        )
-    """)
-
-    cur.execute("DELETE FROM fase_final_equips")
-
-    # ORDRE CORRECTE DE LES FASES
+    # Ordre de fases
     ordre = ["OR", "PLATA", "BRONZE", "XOU"]
 
-    # Carreguem configuració i la reordenem manualment
+    # Config
     cfg = obtenir_config_fases_finals()
     fases = [(fase, cfg[fase]) for fase in ordre if fase in cfg]
 
-    # ordre correcte segons classificació
+    # Classificació global
     cur.execute("SELECT equip_nom FROM classificacio_final ORDER BY posicio ASC")
     equips = [e[0] for e in cur.fetchall()]
 
     pos = 0
     for fase, n in fases:
-        sub = equips[pos:pos+n]
+        sub = equips[pos:pos + n]
         for i, nom in enumerate(sub, start=1):
             cur.execute("""
                 INSERT INTO fase_final_equips (fase, equip_nom, posicio)
-                VALUES (?, ?, ?)
-            """, (fase, nom, i))
+                VALUES (%s, %s, %s)
+            """.replace("%s", "%s" if USING_POSTGRES else "?"),
+                        (fase, nom, i))
         pos += n
 
     conn.commit()
     conn.close()
 
+
 def obtenir_fase_final_equips(fase):
     fase = fase.upper()
+    # Assegurem que hi ha dades correctes
+    fases_cfg = obtenir_config_fases_finals()
+    necessaris = fases_cfg.get(fase, 0)
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = _get_pg_conn() if USING_POSTGRES else _get_sqlite_conn()
     cur = conn.cursor()
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS fase_final_equips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {} PRIMARY KEY,
             fase TEXT,
             equip_nom TEXT,
             posicio INTEGER
         )
-    """)
+    """.format("SERIAL" if USING_POSTGRES else "INTEGER AUTOINCREMENT"))
 
     cur.execute("""
         SELECT equip_nom, posicio
         FROM fase_final_equips
-        WHERE fase=?
+        WHERE fase=%s
         ORDER BY posicio ASC
-    """, (fase,))
+    """.replace("%s", "%s" if USING_POSTGRES else "?"), (fase,))
     equips = cur.fetchall()
-    conn.close()
 
-    fases_cfg = obtenir_config_fases_finals()
-    necessaris = fases_cfg.get(fase, 0)
-
-    if len(equips) != necessaris:
+    if len(equips) != necessaris and necessaris > 0:
+        conn.close()
+        # regenerem
         generar_fase_final_equips()
-
-        conn = sqlite3.connect(DB_FILE)
+        conn = _get_pg_conn() if USING_POSTGRES else _get_sqlite_conn()
         cur = conn.cursor()
         cur.execute("""
             SELECT equip_nom, posicio
             FROM fase_final_equips
-            WHERE fase=?
+            WHERE fase=%s
             ORDER BY posicio ASC
-        """, (fase,))
+        """.replace("%s", "%s" if USING_POSTGRES else "?"), (fase,))
         equips = cur.fetchall()
-        conn.close()
 
+    conn.close()
     return equips
-
-
-
-
