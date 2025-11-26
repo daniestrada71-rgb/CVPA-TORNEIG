@@ -1,32 +1,31 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 import sqlite3
+import os
+import json
+
 from db import (
     DB_FILE,
     calcular_classificacio,
     obtenir_grups_guardats,
-    obtenir_fase_final_equips,    # ⬅ NECESSARI!!
-    obtenir_config_fases_finals   # ⬅ NECESSARI!!
+    obtenir_fase_final_equips,    # es fa servir indirectament via db
+    obtenir_config_fases_finals   # es fa servir indirectament via db
 )
-import os
-import json
-from flask import jsonify, request, send_from_directory
 from .auth import require_admin
 
 admin_fasefinal_bp = Blueprint('admin_fasefinal', __name__)
 
+# ---------------------------------------------------
+# 🔁 RESET CLASSIFICACIÓ I FASE FINAL
+# ---------------------------------------------------
 @admin_fasefinal_bp.route('/reset_classificacio_final')
+@require_admin
 def reset_classificacio_final():
-    import sqlite3
-    from db import DB_FILE
-
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
     # Esborrem classificació final
-    cur.execute("DELETE FROM classificacio_final")
-
-    # Esborrem fase final
-    cur.execute("DELETE FROM fase_final_equips")
+    cur.execute("DROP TABLE IF EXISTS classificacio_final")
+    cur.execute("DROP TABLE IF EXISTS fase_final_equips")
 
     conn.commit()
     conn.close()
@@ -34,7 +33,9 @@ def reset_classificacio_final():
     return "Classificació final i fases finals reiniciades!"
 
 
-# --- Assegurar taula d'eliminats existeix (executa a l'import)
+# ---------------------------------------------------
+# 🧱 Assegurar taula d'eliminats existeix (en l'import)
+# ---------------------------------------------------
 _conn = sqlite3.connect(DB_FILE)
 _cur = _conn.cursor()
 _cur.execute("""
@@ -55,12 +56,26 @@ _conn.close()
 # ---------------------------------------------------
 
 @admin_fasefinal_bp.route('/admin/fasefinal', methods=['GET'])
+@require_admin
 def fase_final_classificacio():
     """Mostra la classificació única generada automàticament."""
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
     # Si tenim una classificació guardada, la carreguem
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+    conn.commit()
+
     cur.execute("SELECT equip_nom, punts, dif_gol, pos_grup, grup FROM classificacio_final ORDER BY posicio")
     guardada = cur.fetchall()
     conn.close()
@@ -79,9 +94,11 @@ def fase_final_classificacio():
 
 def generar_classificacio_unica():
     """Genera una classificació única automàtica a partir dels grups guardats."""
-    grups = sorted(obtenir_grups_guardats().keys())
+    grups_dict = obtenir_grups_guardats()
+    grups = sorted(grups_dict.keys())
     classificacio = []
 
+    # Posicions 1r, 2n, 3r... de cada grup
     for pos in range(1, 9):  # fins al 8è classificat per grup com a màxim
         candidats = []
         for g in grups:
@@ -97,6 +114,7 @@ def generar_classificacio_unica():
                     "pos": pos,
                     "grup": g
                 })
+        # Ordenem dins la mateixa posició de grup
         candidats.sort(key=lambda x: (x["punts"], x["dif"], x["pf"]), reverse=True)
         classificacio.extend(candidats)
 
@@ -104,6 +122,7 @@ def generar_classificacio_unica():
 
 
 @admin_fasefinal_bp.route('/admin/fasefinal/guardar', methods=['POST'])
+@require_admin
 def guardar_classificacio_final():
     """Guarda la classificació única després del drag & drop."""
     data = request.get_json()
@@ -137,23 +156,20 @@ def guardar_classificacio_final():
     conn.close()
     return jsonify({"ok": True, "msg": "Classificació guardada correctament!"})
 
+
 @admin_fasefinal_bp.route('/admin/fasefinal/recalcular', methods=['POST'])
+@require_admin
 def fase_final_recalcular():
     """Buida la classificació final i la torna a generar segons els resultats actuals."""
     try:
-        
-        import sqlite3
-
         # Generem la nova classificació
         classificacio_unica = generar_classificacio_unica()
         if not classificacio_unica:
             return jsonify({"ok": False, "msg": "No hi ha dades per generar la classificació."}), 400
 
-        # Connectem a la base de dades
         conn = sqlite3.connect(DB_FILE)
         cur = conn.cursor()
 
-        # Esborrem la taula i la tornem a crear si cal
         cur.execute("""
             CREATE TABLE IF NOT EXISTS classificacio_final (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -167,13 +183,11 @@ def fase_final_recalcular():
         """)
         cur.execute("DELETE FROM classificacio_final")
 
-        # Inserim la nova classificació
         for pos, item in enumerate(classificacio_unica, start=1):
             cur.execute("""
                 INSERT INTO classificacio_final (posicio, equip_nom, punts, dif_gol, pos_grup, grup)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (pos, item["equip"], item["punts"], item["dif"], item["pos"], item["grup"]))
-
 
         conn.commit()
         conn.close()
@@ -183,14 +197,19 @@ def fase_final_recalcular():
         print("⚠️ Error en recalcular:", e)
         return jsonify({"ok": False, "msg": str(e)}), 500
 
+
+# ---------------------------------------------------
+# ⚙️ CONFIGURAR FASES FINALS
+# ---------------------------------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/configurar', methods=['GET', 'POST'])
+@require_admin
 def configurar_fases():
     """Permet definir quants equips van a cada fase (Or, Plata, Bronze, Xou)."""
-
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Assegurem que existeixi la taula
+    # Assegurem taula
     cur.execute("""
         CREATE TABLE IF NOT EXISTS config_fases_finals (
             fase TEXT PRIMARY KEY,
@@ -198,9 +217,7 @@ def configurar_fases():
         )
     """)
 
-    # ============================
-    # 🔹 POST → Guardar i passar a quadres
-    # ============================
+    # POST → Guardar i passar a quadres
     if request.method == 'POST':
         dades = request.form
 
@@ -214,23 +231,28 @@ def configurar_fases():
         conn.commit()
         conn.close()
 
-        # Generem equips per fase
         from db import generar_fase_final_equips
         generar_fase_final_equips()
 
-        # REDIRIGIM a quadres
-        from flask import redirect, url_for
         return redirect(url_for('admin_fasefinal.mostrar_quadres_finals'))
 
-    # ============================
-    # 🔹 GET → Mostrar pàgina de configuració
-    # ============================
+    # GET → Mostrar pàgina de configuració
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+    conn.commit()
 
-    # Comprovar si hi ha classificació
     cur.execute("SELECT COUNT(*) FROM classificacio_final")
     total_equips = cur.fetchone()[0] or 0
 
-    # Carregar dades actuals
     cur.execute("SELECT fase, num_equips FROM config_fases_finals")
     dades = dict(cur.fetchall())
 
@@ -242,27 +264,52 @@ def configurar_fases():
         total_equips=total_equips
     )
 
+
+# ---------------------------------------------------
+# 🏆 MOSTRAR QUADRES FINALS
+# ---------------------------------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/quadres', methods=['GET', 'POST'])
+@require_admin
 def mostrar_quadres_finals():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Carreguem configuració de fases
+    # Configuració de fases
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS config_fases_finals (
+            fase TEXT PRIMARY KEY,
+            num_equips INTEGER
+        )
+    """)
+    conn.commit()
+
     cur.execute("SELECT fase, num_equips FROM config_fases_finals")
     fases = dict(cur.fetchall())
 
     # Llista completa de classificació
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+    conn.commit()
+
     cur.execute("SELECT equip_nom, posicio FROM classificacio_final ORDER BY posicio ASC")
     tots_equips = cur.fetchall()
     conn.close()
 
-    # 🟢 NOVA LÒGICA
     if request.method == "POST":
         fase_sel = request.form.get("fase", "OR")
     else:
-        fase_sel = request.args.get("fase", "OR")  # <-- ACCEPTAR GET
+        fase_sel = request.args.get("fase", "OR")
 
-    # Calcular equips de cada fase
     fases_ordenades = list(fases.keys())
     posicio_inici = 0
     equips_fase = []
@@ -283,7 +330,13 @@ def mostrar_quadres_finals():
         equips=equips_fase
     )
 
+
+# ---------------------------------------------------
+# ❌ ELIMINAR / ✅ RECUPERAR EQUIPS CLASSIFICACIÓ
+# ---------------------------------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/eliminar_equip', methods=['POST'])
+@require_admin
 def eliminar_equip_classificacio():
     """Mou un equip a la taula d'eliminats i recalcula la classificació."""
     data = request.get_json()
@@ -296,7 +349,6 @@ def eliminar_equip_classificacio():
         conn = sqlite3.connect(DB_FILE)
         cur = conn.cursor()
 
-        # Assegurem que la taula d'eliminats existeixi (defensiu)
         cur.execute("""
         CREATE TABLE IF NOT EXISTS classificacio_eliminats (
             equip_nom TEXT PRIMARY KEY,
@@ -308,7 +360,6 @@ def eliminar_equip_classificacio():
         """)
         conn.commit()
 
-        # Agafem les dades actuals de l'equip
         cur.execute("""
             SELECT punts, dif_gol, pos_grup, grup
             FROM classificacio_final
@@ -322,17 +373,14 @@ def eliminar_equip_classificacio():
 
         punts, dif, pos_grup, grup = fila
 
-        # Guardem a la taula d'eliminats
         cur.execute("""
             INSERT OR REPLACE INTO classificacio_eliminats
             (equip_nom, punts, dif_gol, pos_grup, grup)
             VALUES (?, ?, ?, ?, ?)
         """, (equip_nom, punts, dif, pos_grup, grup))
 
-        # Eliminem de la classificació final
         cur.execute("DELETE FROM classificacio_final WHERE equip_nom = ?", (equip_nom,))
 
-        # Recuperem resta i reassignem posicions
         cur.execute("""
             SELECT equip_nom, punts, dif_gol, pos_grup, grup
             FROM classificacio_final
@@ -355,7 +403,6 @@ def eliminar_equip_classificacio():
         return jsonify({"ok": True, "msg": f"L’equip '{equip_nom}' ha estat eliminat correctament i guardat a Eliminats."})
 
     except Exception as e:
-        # imprimeix al log del servidor per debugging
         print("⚠️ Error eliminant equip:", repr(e))
         try:
             conn.close()
@@ -363,52 +410,9 @@ def eliminar_equip_classificacio():
             pass
         return jsonify({"ok": False, "msg": "Error intern: " + str(e)}), 500
 
-@admin_fasefinal_bp.route('/admin/fasefinal/generar/<fase>')
-def generar_quadre_fase(fase):
-    """Redirigeix directament al quadre HTML (nova versió web)."""
-    from flask import redirect, url_for
-    return redirect(url_for('admin_fasefinal.visualitzar_quadre_fase', fase=fase.upper()))
-
-    def run_window():
-        # ✔ Root no visible, no parpelleig
-        root = tk.Tk()
-        root.overrideredirect(True)    # Amaga el marc
-        root.geometry("0x0+9999+9999") # Amaga completament
-        root.withdraw()
-
-        # --- Finestra elegant ---
-        elegant = tk.Toplevel(root)
-        elegant.title(f"🏆 Quadre Fase {fase.upper()}")
-        elegant.configure(bg="#f0f0f0")
-
-        # ✔ Efecte d'aparició elegant
-        elegant.attributes("-alpha", 0.0)
-        elegant.update_idletasks()
-
-        # ✓ Centrar finestra abans de mostrar-la
-        w, h = 1300, 900
-        sw = elegant.winfo_screenwidth()
-        sh = elegant.winfo_screenheight()
-        x = (sw - w) // 2
-        y = (sh - h) // 2
-
-        elegant.geometry(f"{w}x{h}+{x}+{y}")
-
-        # Animació d'aparició suau
-        for i in range(1, 11):
-            elegant.after(i * 15, lambda a=i: elegant.attributes("-alpha", a / 10.0))
-
-        # Carreguem el quadre dins la finestra elegant
-        open_quadrefase(elegant, fase.upper(), mode="admin")
-
-        root.mainloop()
-
-    # Obrim en un fil separat, sense bloquear Flask
-    threading.Thread(target=run_window).start()
-
-    return jsonify({"ok": True})
 
 @admin_fasefinal_bp.route('/admin/fasefinal/eliminats', methods=['GET'])
+@require_admin
 def llistar_eliminats():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
@@ -417,7 +421,9 @@ def llistar_eliminats():
     conn.close()
     return jsonify({"ok": True, "equips": equips})
 
+
 @admin_fasefinal_bp.route('/admin/fasefinal/recuperar_equip', methods=['POST'])
+@require_admin
 def recuperar_equip():
     data = request.get_json()
     equip = data.get("equip")
@@ -428,7 +434,6 @@ def recuperar_equip():
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Obtenim des d’eliminats
     cur.execute("""
         SELECT equip_nom, punts, dif_gol, pos_grup, grup
         FROM classificacio_eliminats
@@ -437,22 +442,20 @@ def recuperar_equip():
     fila = cur.fetchone()
 
     if not fila:
+        conn.close()
         return jsonify({"ok": False, "msg": "Aquest equip no és a Eliminats"})
 
     equip_nom, punts, dif, pos_grup, grup = fila
 
-    # Calcular nova posició
     cur.execute("SELECT COUNT(*) FROM classificacio_final")
     nova_pos = cur.fetchone()[0] + 1
 
-    # Insertar-lo al final
     cur.execute("""
         INSERT INTO classificacio_final
         (posicio, equip_nom, punts, dif_gol, pos_grup, grup)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (nova_pos, equip_nom, punts, dif, pos_grup, grup))
 
-    # Esborrar d’eliminats
     cur.execute("DELETE FROM classificacio_eliminats WHERE equip_nom = ?", (equip,))
 
     conn.commit()
@@ -461,35 +464,59 @@ def recuperar_equip():
     return jsonify({"ok": True, "msg": f"Equip '{equip}' recuperat correctament!"})
 
 
-# ---------------------------
-# Visualitzar bracket en web
-# ---------------------------
+# ---------------------------------------------------
+# 🌐 VISUALITZAR I GUARDAR BRACKETS VIA WEB
+# ---------------------------------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/visualitzar/<fase>', methods=['GET'])
+@require_admin
 def visualitzar_quadre_fase(fase):
     """Renderitza la pàgina del quadre final (HTML) per la fase indicada."""
     return render_template('admin_fasefinal_bracket.html', fase=fase.upper())
 
+
 @admin_fasefinal_bp.route('/admin/fasefinal/api/equips/<fase>', methods=['GET'])
+@require_admin
 def api_equips_fase(fase):
     """Retorna JSON amb els equips assignats a la fase (posició i nom)."""
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    # Agafem la configuració de fases guardada
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS config_fases_finals (
+            fase TEXT PRIMARY KEY,
+            num_equips INTEGER
+        )
+    """)
+    conn.commit()
+
     cur.execute("SELECT fase, num_equips FROM config_fases_finals")
     fases = dict(cur.fetchall())
 
-    # Recollim la classificació global ordenada
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+    conn.commit()
+
     cur.execute("SELECT equip_nom, posicio FROM classificacio_final ORDER BY posicio ASC")
     tots_equips = cur.fetchall()
     conn.close()
 
-    # si la config no existeix, retornem buit
     if not fases:
         return jsonify({"ok": True, "equips": []})
 
     fases_ordenades = list(fases.keys())
     posicio_inici = 0
     equips_fase = []
+
     for fase_key in fases_ordenades:
         n = fases[fase_key]
         sublist = tots_equips[posicio_inici:posicio_inici + n]
@@ -498,14 +525,12 @@ def api_equips_fase(fase):
             break
         posicio_inici += n
 
-    # format JSON
     equips_json = [{"pos": pos, "equip": eq} for eq, pos in equips_fase]
     return jsonify({"ok": True, "equips": equips_json})
 
-# ---------------------------
-# Guardar estat del bracket (JSON)
-# ---------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/api/save/<fase>', methods=['POST'])
+@require_admin
 def api_save_bracket(fase):
     """Rep un JSON amb l'estat dels partits i el desa en un fitxer."""
     data = request.get_json()
@@ -523,10 +548,9 @@ def api_save_bracket(fase):
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
 
-# ---------------------------
-# Carregar estat del bracket (JSON)
-# ---------------------------
+
 @admin_fasefinal_bp.route('/admin/fasefinal/api/load/<fase>', methods=['GET'])
+@require_admin
 def api_load_bracket(fase):
     save_dir = os.path.join(os.getcwd(), 'brackets_data')
     save_file = os.path.join(save_dir, f"fase_final_{fase.lower()}_data.json")
@@ -539,6 +563,5 @@ def api_load_bracket(fase):
         return jsonify({"ok": True, "data": data})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
-
 
 
