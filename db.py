@@ -40,7 +40,7 @@ def _get_sqlite_conn():
 
 
 def _get_pg_conn():
-    return psycopg2.connect(DATABASE_URL, sslmode="require")
+    return psycopg2.connect(DATABASE_URL)
 
 
 def fetchall(query, params=()):
@@ -574,3 +574,4 @@ def obtenir_fase_final_equips(fase):
 
     conn.close()
     return equips
+
