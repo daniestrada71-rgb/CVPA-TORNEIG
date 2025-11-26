@@ -13,5 +13,7 @@ itsdangerous
 click
 sqlalchemy>=2.0.16
 python-dotenv
+PyPDF2==3.0.1
+
 
 
