@@ -1,11 +1,16 @@
 import sqlite3
 import os
-from collections import defaultdict
 
-DB_FILE = "/tmp/cvpa.db"
-print("📌 Base de dades temporal:", DB_FILE)
-print("📌 BASE DE DADES QUE SED UTILITZA:", DB_FILE)
+# Detectar si som a Render (entorn de producció)
+IS_RENDER = os.environ.get("RENDER") == "true"
 
+if IS_RENDER:
+    DB_FILE = "/tmp/cvpa.db"
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
+
+print("📌 Base de dades utilitzada:", DB_FILE)
 
 # ----------------------------------------------------------------------
 # 🔹 CREACIÓ BASE DE DADES
@@ -412,4 +417,5 @@ def obtenir_fase_final_equips(fase):
         conn.close()
 
     return equips
+
 
