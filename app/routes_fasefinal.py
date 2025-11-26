@@ -55,12 +55,26 @@ _conn.close()
 # ---------------------------------------------------
 
 @admin_fasefinal_bp.route('/admin/fasefinal', methods=['GET'])
+@require_admin
 def fase_final_classificacio():
-    """Mostra la classificació única generada automàticament."""
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
 
-    # Si tenim una classificació guardada, la carreguem
+    # 🔧 Crear taula si no existeix
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+    conn.commit()
+
+    # Ara ja és segur fer SELECT
     cur.execute("SELECT equip_nom, punts, dif_gol, pos_grup, grup FROM classificacio_final ORDER BY posicio")
     guardada = cur.fetchall()
     conn.close()
@@ -71,11 +85,9 @@ def fase_final_classificacio():
             for e, p, d, pg, g in guardada
         ]
     else:
-        # Si no hi ha guardada, la generem des dels grups
         classificacio = generar_classificacio_unica()
 
-    return render_template('admin_fasefinal_classificacio.html', classificacio=classificacio)
-
+    return render_template("admin_fasefinal_classificacio.html", classificacio=classificacio)
 
 def generar_classificacio_unica():
     """Genera una classificació única automàtica a partir dels grups guardats."""
@@ -539,6 +551,7 @@ def api_load_bracket(fase):
         return jsonify({"ok": True, "data": data})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 500
+
 
 
 
