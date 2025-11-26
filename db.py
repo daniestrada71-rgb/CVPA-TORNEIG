@@ -258,15 +258,17 @@ def calcular_classificacio(grup):
         ensure(e2)
 
         # Només comptem com a jugat si tenim números correctes
-        try:
-            p1n = int(p1)
-            p2n = int(p2)
-        except:
+        # Si el partit no està marcat com jugat → NO computa
+        if row[6] != 1:
             continue
 
-        # Sumem PARTIT JUGAT aquí
+        p1n = int(p1) if p1 is not None else 0
+        p2n = int(p2) if p2 is not None else 0
+
+        # Comptem com a partit jugat
         stats[e1]["pj"] += 1
         stats[e2]["pj"] += 1
+
 
         # Favor / contra
         stats[e1]["favor"] += p1n
@@ -431,6 +433,7 @@ def obtenir_fase_final_equips(fase):
         conn.close()
 
     return equips
+
 
 
 
