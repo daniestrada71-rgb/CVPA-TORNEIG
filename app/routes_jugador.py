@@ -125,8 +125,10 @@ def buscar_equip_fasefinal():
     if not rows:
         return jsonify({"ok": False, "resultats": []})
 
-    resultats = [{"fase": r[0], "equip": r[1]} for r in rows]
+    resultats = [{"fase": r["fase"], "equip": r["equip_nom"]} for r in rows]
+
     return jsonify({"ok": True, "resultats": resultats})
+
 
 
 # ========================================================
@@ -173,4 +175,5 @@ def veure_equips_fase(fase):
 @jugador_bp.route('/fase-final/view/<fase>')
 def veure_fase_final_jugador(fase):
     return render_template('jugador_fase_final_bracket.html', fase=fase.upper())
+
 
