@@ -1,7 +1,6 @@
 import sqlite3
 from flask import Blueprint, render_template, request, jsonify
 from db import (
-    DB_FILE,
     obtenir_grups_guardats,
     obtenir_partits,
     calcular_classificacio,
@@ -167,3 +166,4 @@ def veure_equips_fase(fase):
 @jugador_bp.route('/fase-final/view/<fase>')
 def veure_fase_final_jugador(fase):
     return render_template('jugador_fase_final_bracket.html', fase=fase.upper())
+
