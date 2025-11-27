@@ -1,81 +1,205 @@
 import os
 import sqlite3
-from collections import defaultdict
+import psycopg2
+from psycopg2.extras import DictCursor
 
-# --------------------------------------------------
-#  BACKEND: SQLite local o PostgreSQL (Neon)
-# --------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL")
-USING_POSTGRES = bool(DATABASE_URL)
+# -----------------------------
+# Detectar si usem PostgreSQL
+# -----------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_POSTGRES = DATABASE_URL is not None
 
-if USING_POSTGRES:
-    import psycopg2
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "cvpa.db")
-
-if USING_POSTGRES:
+if USE_POSTGRES:
     print("📌 Base de dades utilitzada: PostgreSQL (Neon)")
 else:
-    print("📌 Base de dades utilitzada:", DB_FILE)
+    print("📌 Base de dades utilitzada: SQLite local")
 
 
-# --------------------------------------------------
-#  Helpers de connexió i execució
-# --------------------------------------------------
-def _adapt_query(q: str) -> str:
-    """
-    Adapta la sintaxi de placeholders:
-      - PostgreSQL: %s
-      - SQLite: ?
-    """
-    if USING_POSTGRES:
-        return q
-    return q.replace("%s", "?")
+# -----------------------------
+# Connexió PostgreSQL
+# -----------------------------
+def pg_conn():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
 
 
-def _get_sqlite_conn():
-    return sqlite3.connect(DB_FILE)
+# -----------------------------
+# CREACIÓ DE TAULES (POSTGRES o SQLITE)
+# -----------------------------
+
+def create_tables_pg():
+    """Crea totes les taules a PostgreSQL si no existeixen."""
+    conn = pg_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS equips (
+            id SERIAL PRIMARY KEY,
+            nom_participants TEXT,
+            nom_equip TEXT,
+            valor INTEGER,
+            email TEXT,
+            telefon TEXT,
+            grup INTEGER,
+            ordre INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pistes_grup (
+            grup INTEGER PRIMARY KEY,
+            pista INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS partits (
+            id SERIAL PRIMARY KEY,
+            grup INTEGER,
+            equip1 TEXT,
+            equip2 TEXT,
+            arbitre TEXT,
+            punts1 INTEGER DEFAULT 0,
+            punts2 INTEGER DEFAULT 0,
+            jugat INTEGER DEFAULT 0
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id SERIAL PRIMARY KEY,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_eliminats (
+            equip_nom TEXT PRIMARY KEY,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS config_fases_finals (
+            fase TEXT PRIMARY KEY,
+            num_equips INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fase_final_equips (
+            id SERIAL PRIMARY KEY,
+            fase TEXT,
+            equip_nom TEXT,
+            posicio INTEGER
+        );
+    """)
+
+    conn.commit()
+    conn.close()
 
 
-def _get_pg_conn():
-    return psycopg2.connect(DATABASE_URL)
+def create_tables_sqlite(DB_FILE):
+    """Crea totes les taules per SQLite."""
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS equips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom_participants TEXT,
+            nom_equip TEXT,
+            valor INTEGER,
+            email TEXT,
+            telefon TEXT,
+            grup INTEGER,
+            ordre INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pistes_grup (
+            grup INTEGER PRIMARY KEY,
+            pista INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS partits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            grup INTEGER,
+            equip1 TEXT,
+            equip2 TEXT,
+            arbitre TEXT,
+            punts1 INTEGER DEFAULT 0,
+            punts2 INTEGER DEFAULT 0,
+            jugat INTEGER DEFAULT 0
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_final (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classificacio_eliminats (
+            equip_nom TEXT PRIMARY KEY,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS config_fases_finals (
+            fase TEXT PRIMARY KEY,
+            num_equips INTEGER
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fase_final_equips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fase TEXT,
+            equip_nom TEXT,
+            posicio INTEGER
+        );
+    """)
+
+    conn.commit()
+    conn.close()
 
 
-def fetchall(query, params=()):
-    if USING_POSTGRES:
-        conn = _get_pg_conn()
-        cur = conn.cursor()
-        cur.execute(query, params)
-        rows = cur.fetchall()
-        conn.close()
-        return rows
-    else:
-        conn = _get_sqlite_conn()
-        c = conn.cursor()
-        c.execute(_adapt_query(query), params)
-        rows = c.fetchall()
-        conn.close()
-        return rows
+# -----------------------------
+# FUNCIÓ PRINCIPAL
+# -----------------------------
 
 def ensure_db_exists():
-    """
-    Si usem PostgreSQL (Neon), no cal fer res perquè la DB ja existeix.
-    Si usem SQLite en local, crea el fitxer cvpa.db si no existeix.
-    """
-    import os
-
-    # Si estem a Render i tenim PostgreSQL, no fem res.
-    if os.environ.get("DATABASE_URL"):
-        print("📌 PostgreSQL detectat — no cal crear fitxer SQLite")
-        return
-
-    # Mode local — SQLite
-    if not os.path.exists(DB_FILE):
-        print("📌 SQLite: creant base de dades local...")
-        create_db()
-
+    """Assegura que totes les taules existeixin a PostgreSQL o SQLite."""
+    if USE_POSTGRES:
+        print("📌 PostgreSQL detectat — creant/validant taules…")
+        create_tables_pg()
+    else:
+        DB_FILE = os.path.join(os.path.dirname(__file__), "cvpa.db")
+        print("📌 SQLite — creant/validant taules…")
+        create_tables_sqlite(DB_FILE)
+        
 def execute(query, params=()):
     if USING_POSTGRES:
         conn = _get_pg_conn()
@@ -590,5 +714,6 @@ def obtenir_fase_final_equips(fase):
 
     conn.close()
     return equips
+
 
 
