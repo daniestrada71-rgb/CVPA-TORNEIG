@@ -263,7 +263,6 @@ def actualitzar_resultat(partit_id, punts1, punts2):
         WHERE id=%s
     """, (punts1, punts2, partit_id))
 
-
 # --------------------------------------------------------
 # 🔹 CLASSIFICACIÓ
 # --------------------------------------------------------
@@ -273,7 +272,15 @@ def calcular_classificacio(grup):
 
     def ensure(e):
         if e not in stats:
-            stats[e] = {"punts":0,"favor":0,"contra":0,"diferencia":0,"pj":0}
+            stats[e] = {
+                "punts": 0,
+                "favor": 0,
+                "contra": 0,
+                "diferencia": 0,
+                "pj": 0,
+                "pg": 0,
+                "pp": 0
+            }
 
     for row in partits:
         e1 = row[1]
@@ -285,12 +292,8 @@ def calcular_classificacio(grup):
         ensure(e1)
         ensure(e2)
 
-    # Només computa el partit si realment té valor
-        if jugat != 1:
-            continue
-
-    # Evitem comptar partits "buits" 0-0 com jugats
-        if p1 == 0 and p2 == 0:
+        # Si el partit no s’ha jugat, o és 0-0, no el comptem
+        if jugat != 1 or (p1 == 0 and p2 == 0):
             continue
 
         stats[e1]["pj"] += 1
@@ -298,23 +301,30 @@ def calcular_classificacio(grup):
 
         stats[e1]["favor"] += p1
         stats[e1]["contra"] += p2
+
         stats[e2]["favor"] += p2
         stats[e2]["contra"] += p1
 
+        # Partit guanyat / perdut
         if p1 > p2:
+            stats[e1]["pg"] += 1
+            stats[e2]["pp"] += 1
             stats[e1]["punts"] += 3
         elif p2 > p1:
+            stats[e2]["pg"] += 1
+            stats[e1]["pp"] += 1
             stats[e2]["punts"] += 3
 
+    # Diferència
     for e in stats:
         stats[e]["diferencia"] = stats[e]["favor"] - stats[e]["contra"]
 
+    # Ordenar igual que abans
     return sorted(
         stats.items(),
         key=lambda x: (x[1]["punts"], x[1]["diferencia"], x[1]["favor"]),
         reverse=True
     )
-
 
 # --------------------------------------------------------
 # 🔹 FASE FINAL
@@ -394,6 +404,7 @@ def obtenir_fase_final_equips(fase):
         WHERE fase=%s
         ORDER BY posicio
     """, (fase,))
+
 
 
 
