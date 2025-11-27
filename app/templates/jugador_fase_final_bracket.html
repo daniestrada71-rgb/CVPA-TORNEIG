@@ -42,76 +42,6 @@ body{font-family:Arial,Segoe UI,Roboto; background:var(--bg); margin:0; padding:
 /* phase color */
 #titol_fase { color: var(--accent); }
 .notice { max-width:1200px;margin:12px auto;color:#666;font-size:13px; text-align:center; }
-  /* 🟥 SPORT PRO – Container final */
-.sportpro-final {
-    background: #111;
-    border-radius: 18px;
-    padding: 28px;
-    max-width: 900px;
-    margin: 25px auto;
-    position: relative;
-    overflow: hidden;
-
-    /* Llum esportiva lateral */
-    box-shadow: 0 0 12px rgba(255, 0, 0, 0.4),
-                inset 0 0 35px rgba(255, 0, 0, 0.12);
-}
-
-/* Barra vermella estil ESPN */
-.sportpro-final::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 6px;
-    width: 100%;
-    background: linear-gradient(90deg, #ff1a1a, #b30000);
-}
-
-/* Títol esportiu */
-.sportpro-final h2 {
-    text-align: center;
-    color: white;
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 1.5px;
-    margin-bottom: 18px;
-    text-transform: uppercase;
-    font-family: "Roboto", sans-serif;
-}
-
-/* Línia LED esquerra */
-.sportpro-final::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 30%;
-    height: 40%;
-    width: 4px;
-    background: linear-gradient(180deg, #ff3333, #660000);
-    border-radius: 4px;
-    opacity: 0.8;
-}
-
-/* Caixes de partit */
-.sportpro-match {
-    background: #1a1a1a;
-    border-left: 4px solid #ff3333;
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin: 12px 0;
-    color: #eee;
-    font-size: 18px;
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.sportpro-match span {
-    color: #ff6666;
-    font-weight: 800;
-}
 
 /* =======================
    📱 ADAPTACIÓ A MÒBIL
@@ -380,5 +310,6 @@ init();
 </script>
 </body>
 </html>
+
 
 
