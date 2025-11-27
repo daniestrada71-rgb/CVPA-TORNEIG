@@ -235,18 +235,6 @@ async function init(){
   draw(POSITIONS);
   colorTitle();
 }
-  {% if fase == "OR" %}
-<div class="sportpro-final">
-    <h2>GRAN FINAL</h2>
-
-    {% for equip, pos in equips %}
-    <div class="sportpro-match">
-        <span>#{{ pos }}</span>
-        {{ equip }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
 /* RENDER */
 function makeMatchDiv(mid, m, maxId, posMap){
@@ -314,6 +302,7 @@ init();
 </script>
 </body>
 </html>
+
 
 
 
