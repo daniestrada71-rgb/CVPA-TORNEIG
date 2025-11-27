@@ -285,11 +285,16 @@ def calcular_classificacio(grup):
         ensure(e1)
         ensure(e2)
 
-        if jugat != 1:
-            continue
+# Només computa el partit si realment té valor
+if jugat != 1:
+    continue
 
-        stats[e1]["pj"] += 1
-        stats[e2]["pj"] += 1
+# Evitem comptar partits "buits" 0-0 com jugats
+if p1 == 0 and p2 == 0:
+    continue
+
+stats[e1]["pj"] += 1
+stats[e2]["pj"] += 1
 
         stats[e1]["favor"] += p1
         stats[e1]["contra"] += p2
@@ -389,4 +394,5 @@ def obtenir_fase_final_equips(fase):
         WHERE fase=%s
         ORDER BY posicio
     """, (fase,))
+
 
