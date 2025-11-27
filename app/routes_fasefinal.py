@@ -188,7 +188,6 @@ def fase_final_recalcular():
         print("⚠️ Error recalculant:", e)
         return jsonify({"ok": False, "msg": str(e)}), 500
 
-
 # ---------------------------------------------------------
 # ⚙️ CONFIGURAR FASES FINALS
 # ---------------------------------------------------------
@@ -237,6 +236,28 @@ def configurar_fases():
         total_equips=total_equips
     )
 
+# ---------------------------------------------------------
+# 🎨 VISUALITZAR QUADRE FINAL (HTML)
+# ---------------------------------------------------------
+@admin_fasefinal_bp.route('/admin/fasefinal/visualitzar/<fase>', methods=['GET'])
+def visualitzar_quadre_fase(fase):
+    """
+    Mostra la pàgina HTML del quadre final (bracket) per la fase especificada.
+    Exemple: /admin/fasefinal/visualitzar/OR
+    """
+    return render_template('admin_fasefinal_bracket.html', fase=fase.upper())
+
+
+# ---------------------------------------------------------
+# ➡️ REDIRECCIÓ DES DE /generar/<fase> CAP AL QUADRE
+# ---------------------------------------------------------
+@admin_fasefinal_bp.route('/admin/fasefinal/generar/<fase>', methods=['GET'])
+def generar_quadre_fase(fase):
+    """
+    Redirigeix a la visualització del quadre.
+    Manté compatibilitat amb els botons antics.
+    """
+    return redirect(url_for('admin_fasefinal.visualitzar_quadre_fase', fase=fase.upper()))
 
 # ---------------------------------------------------------
 # 🏆 MOSTRAR QUADRES FINALS
@@ -466,3 +487,4 @@ def reset_bracket(fase):
         return jsonify({"ok": True, "msg": "Quadrant reiniciat correctament!"})
 
     return jsonify({"ok": False, "msg": "No hi havia cap quadre guardat."})
+
