@@ -1,12 +1,30 @@
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, session, current_app, make_response
+        # app/routes.py
+
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    send_file,
+    session,
+    current_app,
+    make_response,
+)
 from db import (
-    DB_FILE,
     afegir_equip,
     obtenir_equips,
     obtenir_equip,
     modificar_equip,
     eliminar_equip,
-    eliminar_tots_equips
+    eliminar_tots_equips,
+    obtenir_grups_guardats,
+    generar_partits,
+    obtenir_partits,
+    actualitzar_resultat,
+    calcular_classificacio,
+    execute,
+    fetchall,
 )
 import pandas as pd
 import os
@@ -16,7 +34,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from io import BytesIO
 from functools import wraps
-import sqlite3
 
 
 # ----------------------------------------------------------------------
@@ -28,33 +45,33 @@ def require_admin(f):
         if not session.get("is_admin"):
             return redirect(url_for("main.admin_login"))
         return f(*args, **kwargs)
+
     return wrapper
 
 
-main_bp = Blueprint('main', __name__)
-admin_bd_bp = Blueprint('admin_bd', __name__)
+main_bp = Blueprint("main", __name__)
+admin_bd_bp = Blueprint("admin_bd", __name__)
 
 
 # ----------------------------------------------------------------------
 # 🔹 MENÚ PRINCIPAL
 # ----------------------------------------------------------------------
-
-@main_bp.route('/')
+@main_bp.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@main_bp.route('/admin')
+@main_bp.route("/admin")
 @require_admin
 def admin_menu():
-    return render_template('admin_menu.html')
+    return render_template("admin_menu.html")
 
 
-@main_bp.route('/admin/login', methods=['GET', 'POST'])
+@main_bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     error = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
         pwd = request.form.get("password", "")
         if pwd == current_app.config["ADMIN_PASSWORD"]:
             session["is_admin"] = True
@@ -65,7 +82,7 @@ def admin_login():
     return render_template("admin_login.html", error=error)
 
 
-@main_bp.route('/admin/logout')
+@main_bp.route("/admin/logout")
 def admin_logout():
     session.clear()
     return redirect(url_for("main.admin_login"))
@@ -74,80 +91,78 @@ def admin_logout():
 # ----------------------------------------------------------------------
 # 🔹 GESTIÓ DE BASE DE DADES D’EQUIPS
 # ----------------------------------------------------------------------
-
-@admin_bd_bp.route('/admin/basedades', methods=['GET', 'POST'])
+@admin_bd_bp.route("/admin/basedades", methods=["GET", "POST"])
 def admin_base_dades():
     equips = obtenir_equips()
     equip_editant = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
         # === Carregar equip per editar ===
-        if 'carregar' in request.form:
+        if "carregar" in request.form:
             try:
-                equip_id = int(request.form.get('id', 0))
+                equip_id = int(request.form.get("id", 0))
                 equip_editant = obtenir_equip(equip_id)
             except Exception:
                 equip_editant = None
-            return render_template('bd.html', equips=equips, equip_editant=equip_editant)
+            return render_template("bd.html", equips=equips, equip_editant=equip_editant)
 
         # === Afegir nou equip ===
-        if 'afegir' in request.form:
-            nom_participants = request.form.get('nom_participants', '').strip()
-            nom_equip = request.form.get('nom_equip', '').strip()
+        if "afegir" in request.form:
+            nom_participants = request.form.get("nom_participants", "").strip()
+            nom_equip = request.form.get("nom_equip", "").strip()
             try:
-                valor = int(request.form.get('valor', 0))
+                valor = int(request.form.get("valor", 0))
             except ValueError:
                 valor = 0
-            email = request.form.get('email', '').strip()
-            telefon = request.form.get('telefon', '').strip()
+            email = request.form.get("email", "").strip()
+            telefon = request.form.get("telefon", "").strip()
             afegir_equip(nom_participants, nom_equip, valor, email, telefon)
-            return redirect(url_for('admin_bd.admin_base_dades'))
+            return redirect(url_for("admin_bd.admin_base_dades"))
 
         # === Modificar equip existent ===
-        if 'modificar' in request.form:
+        if "modificar" in request.form:
             try:
-                equip_id = int(request.form.get('id', 0))
+                equip_id = int(request.form.get("id", 0))
             except ValueError:
-                return redirect(url_for('admin_bd.admin_base_dades'))
-            nom_participants = request.form.get('nom_participants', '').strip()
-            nom_equip = request.form.get('nom_equip', '').strip()
+                return redirect(url_for("admin_bd.admin_base_dades"))
+            nom_participants = request.form.get("nom_participants", "").strip()
+            nom_equip = request.form.get("nom_equip", "").strip()
             try:
-                valor = int(request.form.get('valor', 0))
+                valor = int(request.form.get("valor", 0))
             except ValueError:
                 valor = 0
-            email = request.form.get('email', '').strip()
-            telefon = request.form.get('telefon', '').strip()
+            email = request.form.get("email", "").strip()
+            telefon = request.form.get("telefon", "").strip()
             modificar_equip(equip_id, nom_participants, nom_equip, valor, email, telefon)
-            return redirect(url_for('admin_bd.admin_base_dades'))
+            return redirect(url_for("admin_bd.admin_base_dades"))
 
         # === Eliminar equip ===
-        if 'eliminar' in request.form:
+        if "eliminar" in request.form:
             try:
-                equip_id = int(request.form.get('id', 0))
+                equip_id = int(request.form.get("id", 0))
                 eliminar_equip(equip_id)
             except Exception:
                 pass
-            return redirect(url_for('admin_bd.admin_base_dades'))
+            return redirect(url_for("admin_bd.admin_base_dades"))
 
         # === Eliminar tots els equips ===
-        if 'eliminar_tot' in request.form:
+        if "eliminar_tot" in request.form:
             eliminar_tots_equips()
-            return redirect(url_for('admin_bd.admin_base_dades'))
+            return redirect(url_for("admin_bd.admin_base_dades"))
 
     # GET
-    return render_template('bd.html', equips=equips, equip_editant=equip_editant)
+    return render_template("bd.html", equips=equips, equip_editant=equip_editant)
 
 
 # ----------------------------------------------------------------------
 # 🔹 EXPORTAR / IMPORTAR EXCEL
 # ----------------------------------------------------------------------
-
-@admin_bd_bp.route('/admin/basedades/export', methods=['GET'])
+@admin_bd_bp.route("/admin/basedades/export", methods=["GET"])
 def export_excel():
     equips = obtenir_equips()
     df = pd.DataFrame(
         equips,
-        columns=["id", "jugadors", "equip", "valor", "email", "telefon", "grup", "ordre"]
+        columns=["id", "jugadors", "equip", "valor", "email", "telefon", "grup", "ordre"],
     )
     df = df[["jugadors", "equip", "valor", "email", "telefon"]]
     ruta = os.path.join(os.getcwd(), "export_equips.xlsx")
@@ -155,12 +170,12 @@ def export_excel():
     return send_file(ruta, as_attachment=True)
 
 
-@admin_bd_bp.route('/admin/basedades/import', methods=['POST'])
+@admin_bd_bp.route("/admin/basedades/import", methods=["POST"])
 def import_excel():
-    arxiu = request.files.get('fitxer_excel')
+    arxiu = request.files.get("fitxer_excel")
 
     if not arxiu or arxiu.filename == "":
-        return redirect(url_for('admin_bd.admin_base_dades'))
+        return redirect(url_for("admin_bd.admin_base_dades"))
 
     df = pd.read_excel(arxiu)
     eliminar_tots_equips()
@@ -171,79 +186,45 @@ def import_excel():
             row["equip"],
             int(row["valor"]),
             row.get("email", ""),
-            row.get("telefon", "")
+            row.get("telefon", ""),
         )
 
-    return redirect(url_for('admin_bd.admin_base_dades'))
-
-
-# ----------------------------------------------------------------------
-# 🔹 DISTRIBUCIÓ AUTOMÀTICA (AUXILIAR)
-# ----------------------------------------------------------------------
-
-def repartir_equips(equips, num_grups):
-    """Reparteix els equips equitativament per nivell i en mode serp"""
-    from collections import defaultdict
-
-    equips_ordenats = sorted(equips, key=lambda e: e[3])  # valor
-    nivells = defaultdict(list)
-    for e in equips_ordenats:
-        nivells[e[3]].append(e)
-
-    grups = {i + 1: [] for i in range(num_grups)}
-    direccio = 1
-    for valor in sorted(nivells.keys()):
-        idx = 0
-        for equip in nivells[valor]:
-            grups[idx + 1].append(equip)
-            idx += direccio
-            if idx >= num_grups:
-                direccio = -1
-                idx = num_grups - 1
-            elif idx < 0:
-                direccio = 1
-                idx = 0
-    return grups
+    return redirect(url_for("admin_bd.admin_base_dades"))
 
 
 # ----------------------------------------------------------------------
 # 🔹 CONFECCIÓ DE GRUPS (amb pistes)
 # ----------------------------------------------------------------------
-
-@admin_bd_bp.route('/admin/confecciogrups', methods=['GET', 'POST'])
+@admin_bd_bp.route("/admin/confecciogrups", methods=["GET", "POST"])
 def confeccio_grups():
     from db import obtenir_grups_guardats
 
     equips = obtenir_equips()
     total_equips = len(equips)
     max_grups = max(1, total_equips // 4)
-    num_grups = request.form.get('num_grups', type=int, default=2)
+    num_grups = request.form.get("num_grups", type=int, default=2)
 
     msg = None
     error = None
     grups = {}
 
-    # ---------- LLEGIR PISTES GUARDADES ---------- #
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    # ---------- LLEGIR PISTES GUARDADES (via db.fetchall) ---------- #
     try:
-        rows = c.execute("SELECT grup, pista FROM pistes_grup").fetchall()
+        rows = fetchall("SELECT grup, pista FROM pistes_grup")
     except Exception:
         rows = []
-    conn.close()
 
     pistes = {r[0]: r[1] for r in rows if r[1] is not None}
-    # num_pistes per defecte: màxim de les existents o 4
     num_pistes = max(pistes.values()) if pistes else 4
 
     # 🔁 SI ÉS POST, SOBREESCRIEM num_pistes AMB EL DEL FORMULARI
-    if request.method == 'POST':
-        num_pistes_form = request.form.get('num_pistes', type=int)
+    if request.method == "POST":
+        num_pistes_form = request.form.get("num_pistes", type=int)
         if num_pistes_form:
             num_pistes = num_pistes_form
 
     # ---------- GET ---------- #
-    if request.method == 'GET':
+    if request.method == "GET":
         guardats = obtenir_grups_guardats()
         if guardats:
             return render_template(
@@ -255,7 +236,7 @@ def confeccio_grups():
                 msg=None,
                 error=None,
                 num_pistes=num_pistes,
-                pistes=pistes
+                pistes=pistes,
             )
         return render_template(
             "admin_confecciogrups.html",
@@ -266,13 +247,13 @@ def confeccio_grups():
             msg=None,
             error=None,
             num_pistes=num_pistes,
-            pistes=pistes
+            pistes=pistes,
         )
 
     # ---------- POST ---------- #
 
     # Recarregar des de BD
-    if 'recarregar' in request.form:
+    if "recarregar" in request.form:
         guardats = obtenir_grups_guardats()
         return render_template(
             "admin_confecciogrups.html",
@@ -283,12 +264,12 @@ def confeccio_grups():
             msg="🔄 Grups recarregats correctament",
             error=None,
             num_pistes=num_pistes,
-            pistes=pistes
+            pistes=pistes,
         )
 
     # Capacitat manual per grup
     capacitat_grups = [
-        request.form.get(f'grup_{i}', type=int, default=0)
+        request.form.get(f"grup_{i}", type=int, default=0)
         for i in range(1, num_grups + 1)
     ]
     suma = sum(capacitat_grups)
@@ -298,14 +279,13 @@ def confeccio_grups():
     if num_grups > 0:
         base = total_equips // num_grups
         extra = total_equips % num_grups
-        capacitat_suggerida = [base + (1 if i < extra else 0) for i in range(num_grups)]
+        capacitat_suggerida = [
+            base + (1 if i < extra else 0) for i in range(num_grups)
+        ]
 
     # ---------- GUARDAR (sense redistribuir) ---------- #
     if "guardar" in request.form:
         ordre_json = request.form.get("ordre_json")
-
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
 
         # Guardar ordre dels equips
         if ordre_json:
@@ -316,61 +296,59 @@ def confeccio_grups():
 
             for grup_id, equips_ordre in ordre.items():
                 for e_id, posicio in equips_ordre:
-                    c.execute(
-                        "UPDATE equips SET grup=?, ordre=? WHERE id=?",
-                        (int(grup_id), int(posicio), int(e_id))
+                    execute(
+                        """
+                        UPDATE equips SET grup=%s, ordre=%s WHERE id=%s
+                    """,
+                        (int(grup_id), int(posicio), int(e_id)),
                     )
         else:
             # si no arriba ordre_json, fem servir els grups guardats actuals
-            from db import obtenir_grups_guardats
             grups_guardats = obtenir_grups_guardats()
             pos = 1
             for grup_id, llista in grups_guardats.items():
                 for e in llista:
-                    c.execute(
-                        "UPDATE equips SET grup=?, ordre=? WHERE id=?",
-                        (int(grup_id), pos, int(e[0]))
+                    execute(
+                        """
+                        UPDATE equips SET grup=%s, ordre=%s WHERE id=%s
+                    """,
+                        (int(grup_id), pos, int(e[0])),
                     )
                     pos += 1
 
         # ----- GUARDAR PISTES -----
-        num_pistes_form = request.form.get('num_pistes', type=int, default=num_pistes)
+        num_pistes_form = request.form.get("num_pistes", type=int, default=num_pistes)
         num_pistes = num_pistes_form or num_pistes
 
         # 🔥 ESBORRAR PISTES ANTIGUES
-        c.execute("DELETE FROM pistes_grup")
+        execute("DELETE FROM pistes_grup")
 
         # Tornar a inserir només les noves
         for i in range(1, num_grups + 1):
             pista_val = request.form.get(f"pista_{i}", None)
             if not pista_val:
-                # Guardem igualment el grup, amb pista NULL
-                c.execute(
-                    "INSERT INTO pistes_grup (grup, pista) VALUES (?, NULL)",
-                    (i,)
+                execute(
+                    """
+                    INSERT INTO pistes_grup (grup, pista) VALUES (%s, NULL)
+                """,
+                    (i,),
                 )
             else:
-                c.execute(
-                    "INSERT INTO pistes_grup (grup, pista) VALUES (?, ?)",
-                    (i, int(pista_val))
+                execute(
+                    """
+                    INSERT INTO pistes_grup (grup, pista) VALUES (%s, %s)
+                """,
+                    (i, int(pista_val)),
                 )
 
-        conn.commit()
-        conn.close()
-
         # Recarreguem grups i pistes des de BD per mostrar
-        from db import obtenir_grups_guardats
         grups_guardats = obtenir_grups_guardats()
 
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
         try:
-            rows = c.execute("SELECT grup, pista FROM pistes_grup").fetchall()
+            rows = fetchall("SELECT grup, pista FROM pistes_grup")
         except Exception:
             rows = []
-        conn.close()
         pistes = {r[0]: r[1] for r in rows if r[1] is not None}
-        # ⚠️ NO TOQUEM num_pistes AQUÍ: mantenim el que ve del formulari
 
         msg = "💾 Dades guardades correctament!"
         return render_template(
@@ -382,7 +360,7 @@ def confeccio_grups():
             msg=msg,
             error=None,
             num_pistes=num_pistes,
-            pistes=pistes
+            pistes=pistes,
         )
 
     # ---------- Si no és “Guardar”, generem distribució ---------- #
@@ -390,6 +368,7 @@ def confeccio_grups():
     grups = {i + 1: [] for i in range(num_grups)}
 
     from collections import defaultdict
+
     nivells = defaultdict(list)
     for e in equips_ordenats:
         nivells[e[3]].append(e)
@@ -451,36 +430,29 @@ def confeccio_grups():
 
     # ---------- Guardar automàtic després de generar ---------- #
     try:
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
         pos = 1
         for grup_id, llista in grups.items():
             for e in llista:
-                c.execute(
-                    "UPDATE equips SET grup=?, ordre=? WHERE id=?",
-                    (int(grup_id), pos, int(e[0]))
+                execute(
+                    """
+                    UPDATE equips SET grup=%s, ordre=%s WHERE id=%s
+                """,
+                    (int(grup_id), pos, int(e[0])),
                 )
                 pos += 1
-        conn.commit()
-        conn.close()
         msg = (msg or "") + " (💾 Generat i guardat automàticament!)"
     except Exception as e:
         print("Error desant automàticament:", e)
 
     # Recupera de BD per mantenir l'ordre correcte
-    from db import obtenir_grups_guardats
     grups_guardats = obtenir_grups_guardats()
 
     # Recarreguem pistes per coherència
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
     try:
-        rows = c.execute("SELECT grup, pista FROM pistes_grup").fetchall()
+        rows = fetchall("SELECT grup, pista FROM pistes_grup")
     except Exception:
         rows = []
-    conn.close()
     pistes = {r[0]: r[1] for r in rows if r[1] is not None}
-    # ⚠️ tampoc toquem num_pistes aquí; mantenim el valor vigent
 
     return render_template(
         "admin_confecciogrups.html",
@@ -491,25 +463,26 @@ def confeccio_grups():
         msg=msg,
         error=None,
         num_pistes=num_pistes,
-        pistes=pistes
+        pistes=pistes,
     )
 
 
 # ----------------------------------------------------------------------
 # 🔹 FASE DE GRUPS
 # ----------------------------------------------------------------------
-
-@admin_bd_bp.route('/admin/fasegrups', methods=['GET', 'POST'])
+@admin_bd_bp.route("/admin/fasegrups", methods=["GET", "POST"])
 def fase_grups():
     from db import (
-        obtenir_grups_guardats, generar_partits,
-        obtenir_partits, actualitzar_resultat,
-        calcular_classificacio
+        obtenir_grups_guardats,
+        generar_partits,
+        obtenir_partits,
+        actualitzar_resultat,
+        calcular_classificacio,
     )
 
     grups_guardats = obtenir_grups_guardats()
     grups_disponibles = sorted(grups_guardats.keys()) if grups_guardats else [1]
-    grup_id = request.form.get('grup', type=int, default=grups_disponibles[0])
+    grup_id = request.form.get("grup", type=int, default=grups_disponibles[0])
 
     msg = None
     error = None
@@ -517,7 +490,7 @@ def fase_grups():
     # -------------------------------------------------------------------
     # 🔥 GENERAR PARTITS DE TOTS ELS GRUPS
     # -------------------------------------------------------------------
-    if 'generar' in request.form:
+    if "generar" in request.form:
         total = 0
         detalls = []
 
@@ -528,11 +501,10 @@ def fase_grups():
 
         msg = f"✅ S'han generat {total} partits en total — {', '.join(detalls)}"
 
-
     # -------------------------------------------------------------------
     # 💾 GUARDAR RESULTATS DEL GRUP ACTUAL
     # -------------------------------------------------------------------
-    if 'guardar' in request.form:
+    if "guardar" in request.form:
         try:
             for p in obtenir_partits(grup_id):
                 pid = p[0]
@@ -547,49 +519,46 @@ def fase_grups():
         except Exception as e:
             error = f"❌ Error guardant resultats: {e}"
 
-
     # -------------------------------------------------------------------
-    # 🔄 DESPRÉS DE GENERAR/ GUARDAR / GET → CARREGAR DADES DEL GRUP
+    # 🔄 DESPRÉS DE GENERAR / GUARDAR / GET → CARREGAR DADES DEL GRUP
     # -------------------------------------------------------------------
     partits = obtenir_partits(grup_id)
     classificacio = calcular_classificacio(grup_id)
 
     # -------------------------------------------------------------------
-    # 🏐 Carregar pista assignada
+    # 🏐 Carregar pista assignada (via db.fetchall)
     # -------------------------------------------------------------------
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    row = c.execute("SELECT pista FROM pistes_grup WHERE grup=?", (grup_id,)).fetchone()
-    conn.close()
+    try:
+        rows = fetchall("SELECT pista FROM pistes_grup WHERE grup=%s", (grup_id,))
+        row = rows[0] if rows else None
+    except Exception:
+        row = None
 
     pista_assignada = row[0] if row else None
 
     return render_template(
-        'admin_fasegrups.html',
+        "admin_fasegrups.html",
         grups=grups_disponibles,
         grup_id=grup_id,
         partits=partits,
         classificacio=classificacio,
         msg=msg,
         error=error,
-        pista=pista_assignada
+        pista=pista_assignada,
     )
+
 
 # ----------------------------------------------------------------------
 # 🔹 PDF FASE DE GRUPS
 # ----------------------------------------------------------------------
-
-@admin_bd_bp.route('/admin/fasegrups/pdf/<int:grup_id>', methods=['GET'])
+@admin_bd_bp.route("/admin/fasegrups/pdf/<int:grup_id>", methods=["GET"])
 def descarregar_pdf_grup(grup_id):
     import datetime
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.utils import ImageReader
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
     from io import BytesIO
     from flask import make_response
-    import os
 
     from db import obtenir_partits
 
@@ -622,7 +591,7 @@ def descarregar_pdf_grup(grup_id):
                 ow, oh = img.getSize()
                 scale = display_w / ow
                 display_h = oh * scale
-            except:
+            except Exception:
                 display_h = 40
         else:
             display_h = 40
@@ -631,38 +600,55 @@ def descarregar_pdf_grup(grup_id):
         y = height - header_margin_top - display_h
 
         if logo_path:
-            c.drawImage(logo_path, 40, y, width=display_w,
-                        height=display_h, preserveAspectRatio=True, mask='auto')
+            c.drawImage(
+                logo_path,
+                40,
+                y,
+                width=display_w,
+                height=display_h,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
 
         # Títol
         c.setFont("Helvetica-Bold", 18)
-        c.drawCentredString(width / 2,
-                            height - header_margin_top - (display_h / 2),
-                            f"GRUP {grup_id}")
+        c.drawCentredString(
+            width / 2,
+            height - header_margin_top - (display_h / 2),
+            f"GRUP {grup_id}",
+        )
 
         # Data
         c.setFont("Helvetica", 9)
-        pdf.drawRightString(width - 40, height - 60, datetime.datetime.now().strftime("%d/%m/%Y"))
+        pdf.drawRightString(
+            width - 40, height - 60, datetime.datetime.now().strftime("%d/%m/%Y")
+        )
 
         # Línia separació
         c.line(40, y - 12, width - 40, y - 12)
-        
+
         # marca d'aigua (opcional, baixa opacitat)
         if logo_path:
             try:
                 c.saveState()
-                # intentar posar alpha (no disponible en versions molt antigues)
                 try:
                     c.setFillAlpha(0.04)
                 except Exception:
                     pass
                 wm_w = 260
                 wm_h = 260
-                c.drawImage(logo_path, (width - wm_w) / 2, (height - wm_h) / 2, width=wm_w, height=wm_h, mask='auto')
+                c.drawImage(
+                    logo_path,
+                    (width - wm_w) / 2,
+                    (height - wm_h) / 2,
+                    width=wm_w,
+                    height=wm_h,
+                    mask="auto",
+                )
                 c.restoreState()
             except Exception as e:
                 print("⚠️ Error dibuixant marca d'aigua:", e)
-                
+
         # tornem la Y inicial pels partits
         return y - 30
 
@@ -670,8 +656,9 @@ def descarregar_pdf_grup(grup_id):
     y = draw_header(pdf)
     pdf.setFont("Helvetica", 12)
 
-    for idx, (pid, equip1, equip2, arbit, punts1, punts2, jugat) in enumerate(partits, start=1):
-
+    for idx, (pid, equip1, equip2, arbit, punts1, punts2, jugat) in enumerate(
+        partits, start=1
+    ):
         # si no hi ha espai, nova pàgina
         if y < 140:
             pdf.showPage()
@@ -705,10 +692,14 @@ def descarregar_pdf_grup(grup_id):
                 y_pos = start_y - fila * cell_h
 
                 pdf.rect(x1 + i * cell_w, y_pos, cell_w, cell_h)
-                pdf.drawCentredString(x1 + i * cell_w + cell_w / 2, y_pos + 3, str(num))
+                pdf.drawCentredString(
+                    x1 + i * cell_w + cell_w / 2, y_pos + 3, str(num)
+                )
 
                 pdf.rect(x2 + i * cell_w, y_pos, cell_w, cell_h)
-                pdf.drawCentredString(x2 + i * cell_w + cell_w / 2, y_pos + 3, str(num))
+                pdf.drawCentredString(
+                    x2 + i * cell_w + cell_w / 2, y_pos + 3, str(num)
+                )
 
         y = start_y - (2 * cell_h) - 25
         pdf.line(40, y, width - 40, y)
@@ -726,13 +717,14 @@ def descarregar_pdf_grup(grup_id):
 
     total_pages = len(reader.pages)
 
-    # crear pàgina de numeració
     for i, page in enumerate(reader.pages):
         num_packet = BytesIO()
         num_canvas = canvas.Canvas(num_packet, pagesize=A4)
 
         num_canvas.setFont("Helvetica", 9)
-        num_canvas.drawCentredString(width/2, 25, f"Pàgina {i+1} de {total_pages}")
+        num_canvas.drawCentredString(
+            width / 2, 25, f"Pàgina {i + 1} de {total_pages}"
+        )
 
         num_canvas.save()
         num_packet.seek(0)
@@ -749,4 +741,3 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
-
