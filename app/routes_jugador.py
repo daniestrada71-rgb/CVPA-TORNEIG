@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from db import (
+    get_conn,
     obtenir_grups_guardats,
     obtenir_partits,
     calcular_classificacio,
@@ -31,14 +32,20 @@ def fase_grups():
 def veure_grup(grup):
     partits = obtenir_partits(grup)
     classificacio = calcular_classificacio(grup)
-    
-    # Llegir pista assignada
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    row = c.execute("SELECT pista FROM pistes_grup WHERE grup=?", (grup,)).fetchone()
+
+    # 🔄 LLEGIR PISTA ASSIGNADA DES DE POSTGRESQL
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT pista
+        FROM pistes_grup
+        WHERE grup = %s
+    """, (grup,))
+    row = cur.fetchone()
     conn.close()
 
-    pista = row[0] if row and row[0] is not None else None
+    pista = row[0] if row else None
 
     return render_template(
         "jugador_grup.html",
@@ -49,31 +56,31 @@ def veure_grup(grup):
     )
 
 
+# ========================================================
+# 🔍 BUSCADOR EQUIPS — FASE DE GRUPS
+# ========================================================
 @jugador_bp.route('/api/buscar_equip_grups')
 def api_buscar_equip_grups():
     q = request.args.get('q', '').strip().lower()
     if not q:
         return jsonify({"ok": False, "resultats": []})
 
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    conn = get_conn()
+    cur = conn.cursor()
 
-    rows = c.execute("""
+    cur.execute("""
         SELECT nom_equip, grup
         FROM equips
         WHERE nom_equip IS NOT NULL
-        AND grup IS NOT NULL
-    """).fetchall()
-
+          AND grup IS NOT NULL
+    """)
+    rows = cur.fetchall()
     conn.close()
 
     resultats = []
     for nom, grup in rows:
         if q in nom.lower():
-            resultats.append({
-                "equip": nom,
-                "grup": grup
-            })
+            resultats.append({"equip": nom, "grup": grup})
 
     return jsonify({"ok": True, "resultats": resultats})
 
@@ -86,14 +93,15 @@ def fase_final_index():
     fases = obtenir_config_fases_finals() or {}
 
     fases_visibles = {
-        k: v for k, v in fases.items()
+        k: v
+        for k, v in fases.items()
         if k.upper() in ["OR", "PLATA", "BRONZE", "XOU"]
     }
 
     return render_template('jugador_fase_final.html', fases=fases_visibles)
 
 
-# 🔍 API BUSCADOR FASE FINAL (CORREGIT)
+# 🔍 BUSCADOR EQUIPS FASE FINAL (POSTGRESQL)
 @jugador_bp.route("/api/buscar_equip_fasefinal")
 def buscar_equip_fasefinal():
     q = request.args.get("q", "").strip().lower()
@@ -101,13 +109,13 @@ def buscar_equip_fasefinal():
     if not q:
         return jsonify({"ok": False, "resultats": []})
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT fase, equip_nom 
+        SELECT fase, equip_nom
         FROM fase_final_equips
-        WHERE LOWER(equip_nom) LIKE ?
+        WHERE LOWER(equip_nom) LIKE %s
         ORDER BY fase ASC
     """, (f"%{q}%",))
 
@@ -118,18 +126,17 @@ def buscar_equip_fasefinal():
         return jsonify({"ok": False, "resultats": []})
 
     resultats = [{"fase": r[0], "equip": r[1]} for r in rows]
-
     return jsonify({"ok": True, "resultats": resultats})
 
 
-# ==========================
-# 📋 Veure quadre (llista equips)
-# ==========================
+# ========================================================
+# 📋 Veure equips d’una fase final
+# ========================================================
 @jugador_bp.route('/fase-final/equips/<fase>')
 def veure_equips_fase(fase):
     fase = fase.upper()
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("SELECT fase, num_equips FROM config_fases_finals")
@@ -145,6 +152,7 @@ def veure_equips_fase(fase):
 
     equips_fase = []
     pos = 0
+
     for f, n in fases_cfg.items():
         sub = tots[pos:pos+n]
         if f.upper() == fase:
@@ -159,11 +167,10 @@ def veure_equips_fase(fase):
     )
 
 
-# ==========================
+# ========================================================
 # 🧩 Veure Bracket (jugador)
-# ==========================
+# ========================================================
 @jugador_bp.route('/fase-final/view/<fase>')
 def veure_fase_final_jugador(fase):
     return render_template('jugador_fase_final_bracket.html', fase=fase.upper())
-
 
