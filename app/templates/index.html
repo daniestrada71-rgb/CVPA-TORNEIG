@@ -37,27 +37,35 @@
             margin:0 auto 45px;
         }
 
-        .btn {
-            background:#800000;
-            color:white;
-            border:none;
-            padding:18px 40px;
-            font-size:20px;
-            font-weight:bold;
-            cursor:pointer;
-            display:block;
-            width:90%;
-            max-width:300px;
-            margin:18px auto;
-            text-align:center;
-            text-decoration:none;
-            border-radius:12px;
-            box-shadow:0 3px 8px rgba(0,0,0,0.15);
-        }
+        btn {
+    background:#800000;
+    color:white;
+    border:none;
+    padding:14px 22px;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    display:inline-block;
+    margin:20px auto;
+    text-align:center;
+    text-decoration:none;
 
-        .btn:hover {
-            background:#a00000;
-        }
+    border-radius:30px;         /* 👈 rodó estil app */
+    width:auto;                 /* 👈 només ocupa el necessari */
+    min-width:160px;            /* 👈 perquè no sigui massa petit */
+    
+    box-shadow:0 4px 10px rgba(0,0,0,0.18);   /* 👈 ombra suau */
+    transition:0.2s ease;       /* 👈 animació suau */
+}
+
+btn:hover {
+    background:#a00000;
+    transform:translateY(-2px); /* 👈 efecte popup de botó d'app */
+}
+
+btn:active {
+    transform:translateY(1px);  /* 👈 efecte pressió */
+}
 
         /* BOTÓ ADMIN petit */
         .btn-admin {
@@ -110,6 +118,7 @@
 
 </body>
 </html>
+
 
 
 
