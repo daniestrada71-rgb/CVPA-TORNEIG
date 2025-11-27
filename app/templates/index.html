@@ -30,12 +30,13 @@
             font-weight:900;
         }
 
-        .logo {
-            width:180px;
-            max-width:60%;
-            display:block;
-            margin:0 auto 45px;
-        }
+        .logo-responsive {
+    width: 160px;       /* Mida ideal per PC */
+    max-width: 40vw;    /* Mai més del 40% de l’ample en pantalles petites */
+    height: auto;
+    display: block;
+    margin: 0 auto;     /* Centrat */
+}
 
 .btn {
             background:#800000;
@@ -102,7 +103,7 @@ btn:active {
 
         <h1>TORNEIG VOLEI PLATJA 4x4</h1>
 
-        <img src="/static/img/logo1.png" alt="Logo1 CVPA" class="logo1">
+        <img src="/static/img/logo1.png" alt="Logo1 CVPA" class="logo-responsive">
 
        <!-- BOTÓ INSCRIPCIONS (posa aquí la URL del teu Google Form) -->
         <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfHZ5WRpE_ftT7gpQiNvDWtsSGaE6Ydm60lKlS6amDRNkPoWA/viewform?usp=header" target="_blank">📝 INSCRIPCIONS</a>
@@ -119,6 +120,7 @@ btn:active {
 
 </body>
 </html>
+
 
 
 
