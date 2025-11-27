@@ -324,37 +324,62 @@ def obtenir_config_fases_finals():
         for fase, num in sorted(files, key=lambda x: ordre.index(x[0].upper()))
     }
 
-
 def generar_fase_final_equips():
-    cfg = obtenir_config_fases_finals()
-    ordre = ["OR","PLATA","BRONZE","XOU"]
+    """
+    Llegeix 'classificacio_final' i crea la taula fase_final_equips
+    amb els equips classificats, ordenats i assignats a fases.
+    Compatible 100% amb PostgreSQL.
+    """
 
-    clasificats = fetchall("""
-        SELECT equip_nom
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # Crear taula si no existeix (PostgreSQL)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fase_final_equips (
+            id SERIAL PRIMARY KEY,
+            fase TEXT,
+            posicio INTEGER,
+            equip_nom TEXT,
+            punts INTEGER,
+            dif_gol INTEGER,
+            pos_grup INTEGER,
+            grup INTEGER
+        )
+    """)
+
+    # Buidar contingut antic
+    cur.execute("DELETE FROM fase_final_equips")
+
+    # Llegir configuració de fases
+    cur.execute("SELECT fase, num_equips FROM config_fases_finals ORDER BY fase ASC")
+    fases = cur.fetchall()
+
+    # Llegir classificació final
+    cur.execute("""
+        SELECT equip_nom, punts, dif_gol, pos_grup, grup
         FROM classificacio_final
         ORDER BY posicio ASC
     """)
-    clasificats = [x[0] for x in clasificats]
+    classificats = cur.fetchall()
 
-    execute("DELETE FROM fase_final_equips")
+    index = 0
+    for fase, n_equips in fases:
+        sublist = classificats[index:index + n_equips]
 
-    pos = 0
-    for fase in ordre:
-        n = cfg.get(fase, 0)
-        sub = clasificats[pos:pos+n]
+        pos = 1
+        for eq_nom, punts, dif, pos_g, grup in sublist:
+            cur.execute("""
+                INSERT INTO fase_final_equips
+                (fase, posicio, equip_nom, punts, dif_gol, pos_grup, grup)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (fase, pos, eq_nom, punts, dif, pos_g, grup))
+            pos += 1
 
-        inserts = [
-            (fase, nom, i)
-            for i, nom in enumerate(sub, start=1)
-        ]
+        index += n_equips
 
-        executemany("""
-            INSERT INTO fase_final_equips (fase, equip_nom, posicio)
-            VALUES (%s, %s, %s)
-        """, inserts)
-
-        pos += n
-
+    conn.commit()
+    conn.close()
 
 def obtenir_fase_final_equips(fase):
     fase = fase.upper()
@@ -364,3 +389,4 @@ def obtenir_fase_final_equips(fase):
         WHERE fase=%s
         ORDER BY posicio
     """, (fase,))
+
