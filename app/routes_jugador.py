@@ -95,7 +95,7 @@ def fase_final_index():
     fases_visibles = {
         k: v
         for k, v in fases.items()
-        if k.upper() in ["OR", "PLATA", "BRONZE", "XOU"]
+        if k.upper() in ["OR", "PLATA", "BRONZE", "SHOW"]
     }
 
     return render_template('jugador_fase_final.html', fases=fases_visibles)
@@ -175,5 +175,6 @@ def veure_equips_fase(fase):
 @jugador_bp.route('/fase-final/view/<fase>')
 def veure_fase_final_jugador(fase):
     return render_template('jugador_fase_final_bracket.html', fase=fase.upper())
+
 
 
