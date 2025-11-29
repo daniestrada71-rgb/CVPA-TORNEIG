@@ -360,6 +360,7 @@ function saveOrderToHidden() {
 }
 
 /* Inicialitza el drag & drop amb SortableJS */
+/* Inicialitza el drag & drop amb SortableJS */
 function inicialitzarDragDrop() {
     document.querySelectorAll('.equip-list').forEach(table => {
         const tbody = table.querySelector('tbody');
@@ -368,6 +369,12 @@ function inicialitzarDragDrop() {
         new Sortable(tbody, {
             group: 'grups',
             animation: 150,
+
+            // 🔥 AFEGIT → fa que al mòbil no es mogui tan fàcilment
+            delay: 150,                 // temps de pressió abans de drag
+            delayOnTouchOnly: true,     // només afecta dispositius tàctils
+            touchStartThreshold: 5,     // tolerància de moviment inicial
+
             onEnd: evt => {
                 renumerarGrup(evt.to.closest('table'));
                 if (evt.from !== evt.to) {
@@ -447,3 +454,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
