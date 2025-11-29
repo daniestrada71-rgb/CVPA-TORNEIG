@@ -170,12 +170,19 @@ const tbody = document.getElementById('llista');
 new Sortable(tbody, {
   animation: 150,
   ghostClass: 'dragging',
+
+  // 🔥 AFEGIT → Evita moviments accidentals al mòbil
+  delay: 150,                 // mantenir premut 0.15s per arrossegar
+  delayOnTouchOnly: true,     // només afecta dispositius tàctils
+  touchStartThreshold: 5,     // tolerància de moviment
+
   onEnd: () => {
     Array.from(tbody.querySelectorAll('tr')).forEach((tr, i) => {
       tr.querySelector('td:first-child').innerText = i + 1;
     });
   }
 });
+</script>
 
 function mostrarMissatge(text, tipus = "ok") {
   const msg = document.createElement("div");
@@ -307,3 +314,4 @@ function recuperar(equip) {
 
 </body>
 </html>
+
