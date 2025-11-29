@@ -7,75 +7,101 @@
 body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
-  padding: 20px;
+  padding: 15px;
+  margin: 0;
 }
+
+/* ---- Títol ---- */
 h1 {
   color: #800000;
   text-align: center;
-  margin-bottom: 10px;
+  margin: 10px 0 20px 0;
+  font-size: 26px;
 }
+
+/* ---- Botó tornar ---- */
 .volver {
-  margin-left: 5%;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
+  text-align: left;
 }
+
+/* ---- Info box ---- */
 .info-box {
-  text-align: center;
   background: #fff8f8;
   color: #800000;
   border: 1px solid #d0b0b0;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 15px;
   font-weight: bold;
-  width: 40%;
+  width: 100%;
+  max-width: 420px;
   margin: 0 auto 20px auto;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-size: 16px;
 }
+
+/* ---- Formulari contenidor ---- */
 form {
   background: white;
   padding: 20px;
-  border-radius: 10px;
-  width: 50%;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 550px;
   margin: 0 auto;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  box-shadow: 0 0 12px rgba(0,0,0,0.1);
 }
+
+/* ---- Taula ---- */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  margin-top: 10px;
 }
+
 th {
   background: #800000;
   color: white;
   padding: 10px;
+  font-size: 16px;
 }
+
 td {
-  padding: 8px;
+  padding: 10px;
+  font-size: 16px;
   border-bottom: 1px solid #ddd;
 }
+
+/* ---- Inputs ---- */
 input[type="number"] {
-  width: 80px;
-  padding: 5px;
+  width: 90px;
+  padding: 8px;
   text-align: center;
-  border-radius: 5px;
+  border-radius: 6px;
   border: 1px solid #ccc;
+  font-size: 16px;
 }
+
+/* ---- Botons estil APP ---- */
 .btn {
   background: #800000;
   color: white;
   border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 12px 20px;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
   text-decoration: none;
-  margin: 5px;
+  display: inline-block;
+  font-size: 16px;
 }
+
 .btn:hover {
   background: #a00000;
 }
+
 .actions {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 25px;
 }
 </style>
 </head>
@@ -105,9 +131,10 @@ input[type="number"] {
       {% set fases = ['OR', 'PLATA', 'BRONZE', 'SHOW'] %}
       {% for fase in fases %}
       <tr>
-        <td style="font-weight:bold;">{{ fase }}</td>
-        <td>
-          <input type="number" name="{{ fase }}" value="{{ dades.get(fase, 0) }}" min="0" step="1" required class="fase-input">
+        <td style="font-weight:bold; width: 50%;">{{ fase }}</td>
+        <td style="width: 50%;">
+          <input type="number" name="{{ fase }}" value="{{ dades.get(fase, 0) }}"
+                 min="0" step="1" required class="fase-input">
         </td>
       </tr>
       {% endfor %}
@@ -120,13 +147,15 @@ input[type="number"] {
 </form>
 
 <script>
-// 🎯 Actualitza el comptador d’equips restants
+/* 🎯 Actualitza equips restants */
 const total = {{ total_equips | default(0) }};
 const restants = document.getElementById('restants');
 const inputs = document.querySelectorAll('.fase-input');
 
 function recalcular() {
-  const suma = Array.from(inputs).reduce((acc, inp) => acc + (parseInt(inp.value) || 0), 0);
+  const suma = Array.from(inputs)
+    .reduce((acc, inp) => acc + (parseInt(inp.value) || 0), 0);
+
   restants.textContent = total - suma;
   restants.style.color = (total - suma < 0) ? 'red' : '#800000';
 }
@@ -137,4 +166,3 @@ recalcular();
 
 </body>
 </html>
-
