@@ -3,83 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <title>Quadres Finals</title>
+
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
-  padding: 25px;
+  padding: 20px;
+  margin: 0;
 }
+
+/* ---- Títol ---- */
 h1 {
   color: #800000;
   text-align: center;
-  margin-bottom: 25px;
+  margin: 20px 0;
+  font-size: 26px;
 }
 
-/* Caixa centrada */
+/* ---- Caixa principal ---- */
 .box {
-  width: 500px;
+  width: 100%;
+  max-width: 500px;
   margin: 0 auto;
   background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.12);
   text-align: center;
 }
 
-select {
-  padding: 10px 14px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: 1px solid #bbb;
-  width: 80%;
-  margin-top: 10px;
-}
-
+/* ---- Botons ---- */
 .btn {
   background: #800000;
   color: white;
   border: none;
-  padding: 12px 18px;
-  border-radius: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
-  margin-top: 20px;
+  font-size: 16px;
+  margin-top: 18px;
 }
 .btn:hover {
   background: #a00000;
 }
 
+/* Botó tornar */
 .back {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 18px;
+  left: 18px;
   background: #444;
 }
 .back:hover {
   background: #666;
 }
 
+/* ---- Select ---- */
+select {
+  padding: 12px 15px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  width: 100%;
+  max-width: 350px;
+  margin-top: 10px;
+}
+
+/* ---- Taula responsive ---- */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
 table {
   width: 100%;
-  margin-top: 20px;
   border-collapse: collapse;
+  min-width: 320px;
 }
 th, td {
   padding: 10px;
   border-bottom: 1px solid #ddd;
+  font-size: 15px;
 }
 th {
   background: #800000;
   color: white;
 }
+
+/* ---- Mòbil ---- */
+@media (max-width: 480px) {
+  h1 { font-size: 22px; }
+  .btn { width: 100%; padding: 14px; font-size: 17px; }
+  select { width: 100%; font-size: 17px; }
+}
 </style>
 </head>
+
 <body>
 
 <!-- Botó Tornar -->
-<a href="{{ url_for('admin_fasefinal.configurar_fases') }}" class="btn back">⬅ Tornar</a>
+<a href="{{ url_for('admin_fasefinal.configurar_fases') }}" class="btn back">⬅</a>
 
 <h1>FASE FINAL</h1>
 
@@ -97,6 +123,7 @@ th {
 </form>
 
 {% if equips %}
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -113,11 +140,11 @@ th {
     {% endfor %}
   </tbody>
 </table>
+</div>
 
 <!-- 🔥 Obrir bracket versió jugador -->
 <a href="{{ url_for('admin_fasefinal.visualitzar_quadre_fase', fase=fase_sel) }}"
-   class="btn">🧩 Generar / Editar Quadre {{ fase_sel }}</a>
-
+   class="btn">🧩 Obrir Quadre {{ fase_sel }}</a>
 
 {% else %}
 <p style="margin-top:20px;color:#800000;font-weight:bold;">
@@ -129,4 +156,3 @@ th {
 
 </body>
 </html>
-
