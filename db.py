@@ -332,7 +332,7 @@ def calcular_classificacio(grup):
 def obtenir_config_fases_finals():
     files = fetchall("SELECT fase, num_equips FROM config_fases_finals")
 
-    ordre = ["OR","PLATA","BRONZE","SHOW"]
+    ordre = ["OR","PLATA","BRONZE","SHOW","XOU"]
 
     return {
         fase.upper() : num
@@ -404,6 +404,7 @@ def obtenir_fase_final_equips(fase):
         WHERE fase=%s
         ORDER BY posicio
     """, (fase,))
+
 
 
 
