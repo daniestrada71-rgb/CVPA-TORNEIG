@@ -405,6 +405,35 @@ def obtenir_fase_final_equips(fase):
         ORDER BY posicio
     """, (fase,))
 
+# --------------------------------------------------------
+# 🔥 RESET COMPLET DEL TORNEIG
+# --------------------------------------------------------
+def reset_competicio():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # 🧹 1) Esborrar tots els partits
+    cur.execute("DELETE FROM partits")
+
+    # 🧹 2) Buidar classificació final
+    cur.execute("DELETE FROM classificacio_final")
+
+    # 🧹 3) Buidar equips fase final
+    cur.execute("DELETE FROM fase_final_equips")
+
+    # 🧹 4) Buidar config fases
+    cur.execute("DELETE FROM config_fases_finals")
+
+    # 🧹 5) Buidar pistes
+    cur.execute("DELETE FROM pistes_grup")
+
+    conn.commit()
+    conn.close()
+
+    print("🧽 RESET COMPLET EXECUTAT")
+
+
+
 
 
 
