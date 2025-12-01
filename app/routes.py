@@ -364,8 +364,14 @@ def confeccio_grups():
         )
 
     # ---------- Si no és “Guardar”, generem distribució ---------- #
-    equips_ordenats = sorted(equips, key=lambda e: e[3])  # valor petit = millor equip
+
+    # 🔥 RESET COMPLET DEL TORNEIG QUAN ES GENEREN GRUPS NOUS
+    from db import reset_competicio
+    reset_competicio()
+
+    equips_ordenats = sorted(equips, key=lambda e: e[3])
     grups = {i + 1: [] for i in range(num_grups)}
+
 
     from collections import defaultdict
 
@@ -741,3 +747,4 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
+
