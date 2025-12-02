@@ -579,10 +579,10 @@ def descarregar_pdf_grup(grup_id):
 
     # ------ LOCALITZAR LOGO ------
     possible_paths = [
-        os.path.join(os.getcwd(), "app", "static", "logo.png"),
-        os.path.join(os.getcwd(), "app", "static", "img", "logo.png"),
-        os.path.join(os.getcwd(), "static", "logo.png"),
-        os.path.join(os.getcwd(), "static", "img", "logo.png"),
+        os.path.join(os.getcwd(), "app", "static", "logo1.png"),
+        os.path.join(os.getcwd(), "app", "static", "img", "logo1.png"),
+        os.path.join(os.getcwd(), "static", "logo1.png"),
+        os.path.join(os.getcwd(), "static", "img", "logo1.png"),
     ]
 
     logo_path = next((p for p in possible_paths if os.path.exists(p)), None)
@@ -747,4 +747,5 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
+
 
