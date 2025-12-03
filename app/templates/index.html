@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="manifest" href="/static/manifest.json">
     <title>CVPA2x2</title>
     <style>
         body {
@@ -117,9 +118,18 @@ btn:active {
         <a class="btn btn-admin" href="/admin">⚙️ ADMIN</a>
 
     </div>
+	<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/service-worker.js")
+    .then(() => console.log("Service worker registrat"))
+    .catch(err => console.error("SW error", err));
+}
+</script>
+
 
 </body>
 </html>
+
 
 
 
