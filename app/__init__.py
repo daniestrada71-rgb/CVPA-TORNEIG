@@ -20,6 +20,9 @@ USE_POSTGRES = DATABASE_URL is not None
 
 
 def create_app():
+    from db_migrate import run_migration
+    run_migration()   # Executa migracions automàticament
+
     app = Flask(__name__)
 
     # CONFIG
@@ -48,3 +51,4 @@ def create_app():
         return "pong"
 
     return app
+
