@@ -10,7 +10,7 @@ IS_RENDER = os.environ.get("RENDER") == "true"
 # 🔐 CONFIGURACIÓ SECRETA
 # ----------------------------------------
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "1234")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "CVPA1996")
 
 # ----------------------------------------
 # 🗄 BASE DE DADES
@@ -51,5 +51,6 @@ def create_app():
         return "pong"
 
     return app
+
 
 
