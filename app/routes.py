@@ -679,11 +679,11 @@ def descarregar_pdf_grup(grup_id):
 
         # --- GRAELLES ---
         cell_w, cell_h = 16, 12
-        top_row = list(range(1, 14))
-        bottom_row = list(range(14, 26))
+        top_row = list(range(1, 16))
+        bottom_row = list(range(16, 31))
         total_w = len(top_row) * cell_w
-        x1 = 60
-        x2 = width - (60 + total_w)
+        x1 = 30
+        x2 = width - (30 + total_w)
 
         pdf.setFont("Helvetica-Bold", 11)
         pdf.drawCentredString(x1 + total_w / 2, y, equip1)
@@ -747,5 +747,6 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
+
 
 
