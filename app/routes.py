@@ -58,7 +58,14 @@ admin_bd_bp = Blueprint("admin_bd", __name__)
 # ----------------------------------------------------------------------
 @main_bp.route("/")
 def index():
-    return render_template("index.html")
+    tournament_title = os.getenv(
+        "TOURNAMENT_TITLE",
+        "TORNEIG VOLEI PLATJA"
+    )
+    return render_template(
+        "index.html",
+        tournament_title=tournament_title
+    )
 
 
 @main_bp.route("/admin")
@@ -747,6 +754,7 @@ def descarregar_pdf_grup(grup_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"attachment; filename=grup_{grup_id}.pdf"
     return response
+
 
 
 
