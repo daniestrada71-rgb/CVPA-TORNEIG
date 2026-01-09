@@ -1,28 +1,14 @@
 import os
 from flask import Flask
 
-# ----------------------------------------
-# 🔧 DETECTAR SI SOM A PRODUCCIÓ (RENDER)
-# ----------------------------------------
-IS_RENDER = os.environ.get("RENDER") == "true"
-
-# ----------------------------------------
-# 🔐 CONFIGURACIÓ SECRETA
-# ----------------------------------------
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "CVPA1996")
 
-# ----------------------------------------
-# 🗄 BASE DE DADES
-# ----------------------------------------
-DATABASE_URL = os.environ.get("DATABASE_URL")  # PostgreSQL Neon
+DATABASE_URL = os.environ.get("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
 
 
 def create_app():
-    from app.db_migrate import run_migration
-    run_migration()   # Executa migracions automàticament
-
     app = Flask(__name__)
 
     # CONFIG
@@ -31,16 +17,20 @@ def create_app():
     app.config["DATABASE_URL"] = DATABASE_URL
     app.config["USE_POSTGRES"] = USE_POSTGRES
 
-    # INIT DB
-    from db import ensure_db_exists
-    ensure_db_exists()
+    # INIT DB + MIGRATIONS (quan l'app ja existeix)
+    with app.app_context():
+        from db import ensure_db_exists
+        ensure_db_exists()
 
-    # IMPORTAR BLUEPRINTS REALS
+        # Migracions automàtiques DESPRÉS que existeixin les taules base
+        from app.db_migrate import run_migration
+        run_migration()
+
+    # BLUEPRINTS
     from .routes import main_bp, admin_bd_bp
     from .routes_fasefinal import admin_fasefinal_bp
     from .routes_jugador import jugador_bp
 
-    # REGISTRAR BLUEPRINTS
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bd_bp)
     app.register_blueprint(admin_fasefinal_bp)
@@ -51,6 +41,3 @@ def create_app():
         return "pong"
 
     return app
-
-
-
