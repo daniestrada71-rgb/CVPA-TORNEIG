@@ -1,11 +1,15 @@
 import os
-from flask import Flask
+from flask import Flask, current_app
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "CVPA1996")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 USE_POSTGRES = DATABASE_URL is not None
+
+# 🏐 Multi-torneig
+TOURNAMENT_SLUG = os.environ.get("TOURNAMENT_SLUG", "default")
+TOURNAMENT_TITLE = os.environ.get("TOURNAMENT_TITLE", "Torneig CVPA")
 
 
 def create_app():
@@ -17,12 +21,23 @@ def create_app():
     app.config["DATABASE_URL"] = DATABASE_URL
     app.config["USE_POSTGRES"] = USE_POSTGRES
 
+    # MULTI-TORNEIG CONFIG
+    app.config["TOURNAMENT_SLUG"] = TOURNAMENT_SLUG
+    app.config["TOURNAMENT_TITLE"] = TOURNAMENT_TITLE
+
+    # Deixa variables disponibles a tots els templates
+    @app.context_processor
+    def inject_tournament():
+        return {
+            "TOURNAMENT_TITLE": current_app.config.get("TOURNAMENT_TITLE", "Torneig CVPA"),
+            "TOURNAMENT_SLUG": current_app.config.get("TOURNAMENT_SLUG", "default"),
+        }
+
     # INIT DB + MIGRATIONS (quan l'app ja existeix)
     with app.app_context():
         from db import ensure_db_exists
         ensure_db_exists()
 
-        # Migracions automàtiques DESPRÉS que existeixin les taules base
         from app.db_migrate import run_migration
         run_migration()
 
