@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="manifest" href="/static/manifest.json">
-    <title>CVPA - Tornejos</title>
-
+    <title>CVPA2x2</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,30 +19,22 @@
 
         .container {
             width:100%;
-            max-width:650px;
+            max-width:450px;
             padding:20px;
         }
 
         h1 {
             color:#800000;
             font-size:clamp(22px, 5vw, 32px);
-            margin-bottom:10px;
+            margin-bottom:35px;
             font-weight:900;
         }
 
-        h3 {
-            color:#800000;
-            font-size:clamp(16px, 5vw, 22px);
-            margin:0 0 25px 0;
-            font-weight:900;
-        }
-
-        .logo-responsive {
-            width: 160px;
-            max-width: 40vw;
-            height: auto;
-            display: block;
-            margin: 0 auto 25px;
+        .logo {
+            width:180px;
+            max-width:60%;
+            display:block;
+            margin:0 auto 45px;
         }
 
         .btn {
@@ -57,31 +47,16 @@
             cursor:pointer;
             display:block;
             width:90%;
-            max-width:360px;
-            margin:14px auto;
+            max-width:300px;
+            margin:18px auto;
             text-align:center;
             text-decoration:none;
             border-radius:12px;
             box-shadow:0 3px 8px rgba(0,0,0,0.15);
-            transition: transform 0.12s ease, background 0.12s ease;
         }
 
         .btn:hover {
             background:#a00000;
-            transform:translateY(-2px);
-        }
-
-        .btn:active {
-            transform:translateY(1px);
-        }
-
-        /* Botons de torneig (una mica més “clars”) */
-        .btn-torneig {
-            background:#7a1a1a;
-            max-width:420px;
-        }
-        .btn-torneig:hover {
-            background:#981f1f;
         }
 
         /* BOTÓ ADMIN petit */
@@ -94,48 +69,45 @@
         }
         .btn-admin:hover {
             background:#666;
-            transform:translateY(-2px);
         }
-
+		 /* 📱 Ajustos per a mòbil petit */
         @media (max-width: 480px) {
-            h1 { font-size:26px; }
+            .logo {
+                width:140px;
+                margin-bottom:35px;
+            }
+            h1 {
+                font-size:26px;
+            }
             .btn {
                 font-size:18px;
                 padding:16px 28px;
             }
-        }
+        
+
     </style>
 </head>
-
 <body>
+
     <div class="container">
 
-        <h1>CLUB VOLEI PLATJA ARENYS</h1>
-        <h3>TORNEJOS</h3>
+        <h1>TORNEIG VOLEI PLATJA 2x2 / CVPA</h1>
 
-        <img src="/static/img/logo1.png" alt="Logo CVPA" class="logo-responsive">
+        <img src="/static/img/logo.png" alt="Logo CVPA" class="logo">
 
-        <!-- 🔥 BOTONS TORNEJOS -->
-        <!-- (Ara són URLs provisionals. Quan tinguem els subdominis, els canviem) -->
-        <a class="btn btn-torneig" href="https://cvpa-torneig-production.up.railway.app/" target="_blank">🏐 2x2 Femení</a>
-        <a class="btn btn-torneig" href="https://cvpa-torneig-production.up.railway.app/" target="_blank">🏐 2x2 Masculí</a>
-        <a class="btn btn-torneig" href="https://cvpa-torneig-production.up.railway.app/" target="_blank">🏐 2x2 Mixte</a>
-        <a class="btn btn-torneig" href="https://cvpa-torneig-production.up.railway.app/" target="_blank">🏐 4x4 Mixte</a>
+       <!-- BOTÓ INSCRIPCIONS (posa aquí la URL del teu Google Form) -->
+        <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfHZ5WRpE_ftT7gpQiNvDWtsSGaE6Ydm60lKlS6amDRNkPoWA/viewform?usp=header" target="_blank">📝 INSCRIPCIONS</a>
 
-        <!-- Botó Inscripcions -->
-        <a class="btn" href="https://www.torneigcvpa.cat/" target="_blank">📝 INSCRIPCIONS</a>
+	   <!-- BOTÓ JUGADOR -->
+        <a class="btn" href="/jugador">🎮 JUGADOR</a>
 
-        <!-- Admin (si vols, només per tu) -->
-        <a class="btn btn-admin" href="/admin">⚙️ ADMIN (Portada)</a>
+
+
+        <!-- BOTÓ ADMIN PETIT -->
+        <a class="btn btn-admin" href="/admin">⚙️ ADMIN</a>
 
     </div>
 
-    <script>
-    if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/static/service-worker.js")
-        .then(() => console.log("Service worker registrat"))
-        .catch(err => console.error("SW error", err));
-    }
-    </script>
 </body>
 </html>
+
